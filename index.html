@@ -641,8 +641,15 @@ function rowHTML(r) {
     '</tr>';
 }
 
+const SERVILLETAS_ORDEN = ['Servilletas 33s', 'Servilletas 24s', 'Servilletas 18s'];
+function ordenFamilias(nombres) {
+  const prioridad = SERVILLETAS_ORDEN.filter(n => nombres.includes(n));
+  const resto = nombres.filter(n => !SERVILLETAS_ORDEN.includes(n)).sort();
+  return prioridad.concat(resto);
+}
+
 function renderFamiliaBlocks(container, familias) {
-  const famNames = Object.keys(familias).sort();
+  const famNames = ordenFamilias(Object.keys(familias));
   famNames.forEach(fam => {
     const rows = familias[fam];
     const block = document.createElement('div');
