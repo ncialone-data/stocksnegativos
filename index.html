@@ -1,0 +1,405 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Stocks Negativos x Fábrica</title>
+<style>
+  :root {
+    --red: #cc0000;
+    --red-dark: #990000;
+    --bg: #f4f5f7;
+    --card: #ffffff;
+    --border: #e0e0e0;
+    --text: #222;
+    --muted: #666;
+    --green: #1a7f37;
+    --amber: #b8860b;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+  }
+  header {
+    background: linear-gradient(135deg, var(--red), var(--red-dark));
+    color: white;
+    padding: 20px 24px;
+  }
+  header h1 { margin: 0 0 4px 0; font-size: 22px; }
+  header .sub { font-size: 13px; opacity: 0.9; display: flex; gap: 16px; flex-wrap: wrap; align-items: center; }
+  #refreshBtn {
+    background: rgba(255,255,255,0.15);
+    border: 1px solid rgba(255,255,255,0.4);
+    color: white;
+    padding: 5px 12px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 13px;
+  }
+  #refreshBtn:hover { background: rgba(255,255,255,0.3); }
+  #status { font-size: 13px; }
+  .kpis {
+    display: flex; gap: 12px; flex-wrap: wrap;
+    padding: 16px 24px 0 24px;
+  }
+  .kpi {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 12px 18px;
+    min-width: 150px;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.04);
+  }
+  .kpi .num { font-size: 26px; font-weight: 700; color: var(--red); }
+  .kpi .label { font-size: 12px; color: var(--muted); margin-top: 2px; }
+  .tabs {
+    display: flex; flex-wrap: wrap; gap: 6px;
+    padding: 16px 24px 0 24px;
+  }
+  .tab-btn {
+    padding: 7px 14px;
+    border-radius: 20px;
+    border: 1px solid var(--border);
+    background: var(--card);
+    cursor: pointer;
+    font-size: 13px;
+    color: var(--text);
+    white-space: nowrap;
+  }
+  .tab-btn.active {
+    background: var(--red);
+    color: white;
+    border-color: var(--red);
+  }
+  .tab-btn .count {
+    display: inline-block;
+    margin-left: 6px;
+    background: rgba(0,0,0,0.08);
+    border-radius: 10px;
+    padding: 0 6px;
+    font-size: 11px;
+  }
+  .tab-btn.active .count { background: rgba(255,255,255,0.25); }
+  .tab-btn.new-tab { border-color: var(--amber); color: var(--amber); font-weight: 600; }
+  .tab-btn.new-tab.active { background: var(--amber); border-color: var(--amber); color: white; }
+  .tab-btn.empty { opacity: 0.45; }
+  main { padding: 16px 24px 40px 24px; }
+  .familia-block {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    margin-bottom: 16px;
+    overflow: hidden;
+  }
+  .familia-title {
+    background: #fafafa;
+    padding: 10px 16px;
+    font-weight: 600;
+    font-size: 14px;
+    border-bottom: 1px solid var(--border);
+  }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  th, td { padding: 8px 12px; text-align: left; border-bottom: 1px solid #f0f0f0; }
+  th {
+    background: #fbfbfb;
+    color: var(--muted);
+    font-weight: 600;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+  }
+  tr:last-child td { border-bottom: none; }
+  .neg { color: var(--red); font-weight: 700; }
+  .ocdif-cubierto { color: var(--green); font-weight: 600; }
+  .ocdif-falta { color: var(--red); font-weight: 600; }
+  .muted { color: var(--muted); }
+  .empty-msg {
+    text-align: center; padding: 40px; color: var(--muted); font-size: 14px;
+  }
+  #errorBanner {
+    display: none;
+    background: #fff3cd; border: 1px solid #ffe69c; color: #664d03;
+    padding: 10px 16px; margin: 16px 24px 0 24px; border-radius: 8px; font-size: 13px;
+  }
+  #loadingBanner {
+    padding: 40px; text-align: center; color: var(--muted);
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>STOCKS NEGATIVOS x FÁBRICA</h1>
+  <div class="sub">
+    <span id="status">Cargando datos...</span>
+    <button id="refreshBtn" onclick="loadAll()">↻ Actualizar ahora</button>
+  </div>
+</header>
+
+<div id="errorBanner"></div>
+
+<div class="kpis" id="kpis" style="display:none;">
+  <div class="kpi"><div class="num" id="kpiTotal">0</div><div class="label">Códigos negativos</div></div>
+  <div class="kpi"><div class="num" id="kpiSegmentos">0</div><div class="label">Segmentos con negativos</div></div>
+  <div class="kpi"><div class="num" id="kpiNuevos">0</div><div class="label">Códigos sin clasificar</div></div>
+  <div class="kpi"><div class="num" id="kpiSinCobertura">0</div><div class="label">Sin OC que cubra el faltante</div></div>
+</div>
+
+<div class="tabs" id="tabs"></div>
+<main id="main">
+  <div id="loadingBanner">Cargando datos desde Google Sheets...</div>
+</main>
+
+<script>
+const SHEET_KEY = "2PACX-1vR_JTyFWkCNN1TPZaXT8SpsxbULRsd2ayrR4K7wEtuAAcaAcvr3S9BzHwRdLx0IKl1cHNqM46HduJyj";
+const GIDS = {"STOCK_CENTRAL": 0, "OC_BARMAN": 2042553428, "OC_GRAFICA": 440867936, "OC_TUBOS": 815971331, "OC_VYMAT": 2015688495};
+const CLASSIFICATION = {"PS1126": [["BARMAN", "33s"]], "PS0858": [["BARMAN", "33s"]], "PS1123": [["BARMAN", "33s"]], "PS0255": [["BARMAN", "33s"], ["GRUPO L", "SERVILLETAS 33s"], ["VYMAT", "SERVILLETAS"]], "PS0564": [["BARMAN", "33s"]], "PS0983": [["BARMAN", "33s"]], "PS0914": [["BARMAN", "33s"]], "PS0846": [["BARMAN", "33s"], ["VYMAT", "SERVILLETAS"]], "PS1080": [["BARMAN", "33s"]], "PS1005": [["BARMAN", "33s"]], "PS0728": [["BARMAN", "33s"]], "PS1012": [["BARMAN", "33s"], ["VYMAT", "SERVILLETAS"]], "PS1093": [["BARMAN", "33s"]], "PS1124": [["BARMAN", "33s"]], "PS1096": [["BARMAN", "33s"]], "PS0663": [["BARMAN", "33s"]], "PS1090": [["BARMAN", "33s"]], "PS0995": [["BARMAN", "33s"]], "PS1058": [["BARMAN", "33s"]], "PS0946": [["BARMAN", "33s"]], "PS0634": [["BARMAN", "33s"]], "PS0664": [["BARMAN", "33s"]], "PS0689": [["BARMAN", "33s"]], "PS0701": [["BARMAN", "33s"]], "PS0734": [["BARMAN", "33s"]], "PS0779": [["BARMAN", "33s"]], "PS0788": [["BARMAN", "33s"]], "PS0801": [["BARMAN", "33s"]], "PS0843": [["BARMAN", "33s"]], "PS0845": [["BARMAN", "33s"]], "PS0852": [["BARMAN", "33s"]], "PS0915": [["BARMAN", "33s"]], "PS0969": [["BARMAN", "33s"]], "PS0766": [["BARMAN", "33s"]], "PS0867": [["BARMAN", "33s"]], "PS0957": [["BARMAN", "33s"]], "PS0974": [["BARMAN", "33s"]], "PS0926": [["BARMAN", "33s"]], "PS1061": [["BARMAN", "33s"]], "PS0958": [["BARMAN", "33s"], ["VYMAT", "SERVILLETAS"]], "PS0252": [["BARMAN", "33s"]], "PS0876": [["BARMAN", "33s"]], "PS1060": [["BARMAN", "33s"]], "PS1048": [["BARMAN", "33s"]], "PS0923": [["BARMAN", "33s"]], "PS0670": [["BARMAN", "33s"]], "PS1009": [["BARMAN", "33s"]], "PS0006": [["BARMAN", "33s"]], "PS0668": [["BARMAN", "33s"]], "PS0947": [["BARMAN", "33s"]], "PS1110": [["BARMAN", "33s"]], "PS1027": [["BARMAN", "33s"]], "PS0004": [["BARMAN", "24s"]], "PS1054": [["BARMAN", "24s"]], "PS0481": [["BARMAN", "24s"]], "PS0590": [["BARMAN", "24s"]], "PS0614": [["BARMAN", "24s"]], "PS0656": [["BARMAN", "24s"]], "PS0678": [["BARMAN", "24s"]], "PS0750": [["BARMAN", "24s"]], "PS0780": [["BARMAN", "24s"]], "PS0783": [["BARMAN", "24s"]], "PS0799": [["BARMAN", "24s"]], "PS0803": [["BARMAN", "24s"]], "PS0804": [["BARMAN", "24s"]], "PS0809": [["BARMAN", "24s"]], "PS1101": [["BARMAN", "24s"]], "PS0973": [["BARMAN", "24s"]], "PS1113": [["BARMAN", "24s"]], "PS0662": [["BARMAN", "24s"]], "PS0250": [["BARMAN", "24s"]], "PS0473": [["BARMAN", "24s"]], "PS1057": [["BARMAN", "24s"]], "PS0972": [["BARMAN", "24s"]], "PS0866": [["BARMAN", "24s"]], "PS0673": [["BARMAN", "24s"]], "PS0692": [["BARMAN", "24s"]], "PS0426": [["BARMAN", "24s"]], "PS1122": [["BARMAN", "18s"]], "PS0243": [["BARMAN", "18s"]], "PS0984": [["BARMAN", "18s"]], "PS0857": [["BARMAN", "18s"]], "PS0865": [["BARMAN", "18s"]], "PS0752": [["BARMAN", "18s"]], "PS0913": [["BARMAN", "18s"]], "PS0661": [["BARMAN", "18s"]], "PS1092": [["BARMAN", "18s"]], "PS0994": [["BARMAN", "18s"]], "PS0993": [["BARMAN", "18s"]], "PS0601": [["BARMAN", "18s"]], "PS0733": [["BARMAN", "18s"]], "PS0754": [["BARMAN", "18s"]], "PS0907": [["BARMAN", "18s"]], "PS0002": [["BARMAN", "18s"]], "PS0637": [["BARMAN", "18s"]], "PS0847": [["BARMAN", "18s"]], "PS0971": [["BARMAN", "18s"]], "PS0925": [["BARMAN", "18s"]], "PS0563": [["BARMAN", "18s"]], "PS0851": [["BARMAN", "18s"]], "PS0245": [["BARMAN", "18s"]], "PS0864": [["BARMAN", "BAR"]], "PS0240": [["BARMAN", "BAR"]], "PS0856": [["BARMAN", "BAR"]], "PS0241": [["BARMAN", "BAR"]], "PS0638": [["BARMAN", "BAR"]], "PS1052": [["BARMAN", "BAR"]], "PS0770": [["BARMAN", "BAR"]], "PS0660": [["BARMAN", "BAR"]], "PS0790": [["BARMAN", "BAR"]], "PS0007": [["BARMAN", "BAR"]], "PS0562": [["BARMAN", "BAR"]], "PC0233": [["BARMAN", "ESTUCHES"]], "PC0205": [["BARMAN", "ESTUCHES"]], "PC0202": [["BARMAN", "ESTUCHES"]], "PC0203": [["BARMAN", "ESTUCHES"]], "PP0075": [["BARMAN", "ESTUCHES"]], "PC0080": [["BARMAN", "ESTUCHES"]], "PC0081": [["BARMAN", "ESTUCHES"]], "PC0380": [["BARMAN", "ESTUCHES"]], "PP0552": [["BARMAN", "ESTUCHES"]], "PP0425": [["BARMAN", "HAMBURGUESA"]], "PP0426": [["BARMAN", "HAMBURGUESA"]], "PP0456": [["BARMAN", "HAMBURGUESA"]], "PP0589": [["BARMAN", "HAMBURGUESA"], ["VYMAT", "SERVILLETAS"]], "PP0521": [["BARMAN", "HAMBURGUESA"]], "PP0500": [["BARMAN", "HAMBURGUESA"]], "PP0580": [["BARMAN", "HAMBURGUESA"]], "PP0527": [["BARMAN", "HAMBURGUESA"]], "PP0517": [["BARMAN", "HAMBURGUESA"]], "PP0466": [["BARMAN", "HAMBURGUESA"]], "PP0553": [["BARMAN", "HAMBURGUESA"]], "PP0543": [["BARMAN", "HAMBURGUESA"]], "PP0516": [["BARMAN", "HAMBURGUESA"]], "PP0514": [["BARMAN", "HAMBURGUESA"]], "PP0513": [["BARMAN", "HAMBURGUESA"]], "PP0512": [["BARMAN", "HAMBURGUESA"]], "PP0505": [["BARMAN", "HAMBURGUESA"]], "PP0504": [["BARMAN", "HAMBURGUESA"]], "PP0489": [["BARMAN", "HAMBURGUESA"]], "PP0467": [["BARMAN", "HAMBURGUESA"]], "PP0586": [["BARMAN", "HAMBURGUESA"]], "PP0581": [["BARMAN", "HAMBURGUESA"]], "PP0490": [["BARMAN", "HAMBURGUESA"]], "PP0455": [["BARMAN", "HAMBURGUESA"]], "PP0239": [["BARMAN", "HAMBURGUESA"]], "PP0004": [["BARMAN", "HAMBURGUESA"]], "PP0465": [["BARMAN", "HAMBURGUESA"]], "PM0476": [["BARMAN", "MANGAS 10"]], "PM0478": [["BARMAN", "MANGAS 10"]], "PM0475": [["BARMAN", "MANGAS 10"]], "PM0477": [["BARMAN", "MANGAS 10"]], "PM0473": [["BARMAN", "MANGAS 25"]], "PM0457": [["BARMAN", "MANGAS 25"]], "PM0453": [["BARMAN", "MANGAS 25"]], "PM0455": [["BARMAN", "MANGAS 25"]], "PM0466": [["BARMAN", "MANGAS 25"]], "PM0450": [["BARMAN", "MANGAS 25"]], "PM0472": [["BARMAN", "MANGAS 25"]], "PM0469": [["BARMAN", "MANGAS 25"]], "PM0471": [["BARMAN", "MANGAS 25"]], "PM0470": [["BARMAN", "MANGAS 25"]], "PM0441": [["BARMAN", "MANGAS 25"]], "PM0474": [["BARMAN", "MANGAS 25"]], "PM0440": [["BARMAN", "MANGAS 25"]], "PP0585": [["BARMAN", "MANTECA"]], "PP0458": [["BARMAN", "MANTECA"], ["TUBOS", "1 KILO"], ["VYMAT", "SERVILLETAS"]], "PF0047": [["BARMAN", "RESIMAX"]], "PF0056": [["BARMAN", "RESIMAX"]], "PF0046": [["BARMAN", "RESIMAX"]], "PF0036": [["BARMAN", "RESIMAX"]], "PF0053": [["BARMAN", "RESIMAX"]], "PF0052": [["BARMAN", "RESIMAX"]], "PF0066": [["BARMAN", "RESIMAX"]], "PF0070": [["BARMAN", "RESIMAX"]], "PF0067": [["BARMAN", "RESIMAX"]], "PF0065": [["BARMAN", "RESIMAX"]], "PF0068": [["BARMAN", "RESIMAX"]], "PF0055": [["BARMAN", "RESIMAX"]], "PF0057": [["BARMAN", "RESIMAX"]], "PF0035": [["BARMAN", "RESIMAX"]], "PF0034": [["BARMAN", "RESIMAX"]], "PF0069": [["BARMAN", "RESIMAX"]], "PF0054": [["BARMAN", "RESIMAX"]], "PF0048": [["BARMAN", "RESIMAX"]], "PF0049": [["BARMAN", "RESIMAX"]], "PF0051": [["BARMAN", "RESIMAX"]], "PF0045": [["BARMAN", "RESIMAX"]], "PP0156": [["BARMAN", "RESIMAX GENERICO"]], "PP0507": [["BARMAN", "RESIMAX GENERICO"]], "PP0518": [["BARMAN", "RESIMAX GENERICO"]], "PP0506": [["BARMAN", "RESIMAX GENERICO"]], "PP0520": [["BARMAN", "RESIMAX GENERICO"]], "PP0508": [["BARMAN", "RESIMAX GENERICO"]], "PP0519": [["BARMAN", "RESIMAX GENERICO"]], "PP0157": [["BARMAN", "RESIMAX GENERICO"]], "PP0570": [["BARMAN", "SUIPACHA"]], "PP0567": [["BARMAN", "SUIPACHA"]], "PP0571": [["BARMAN", "SUIPACHA"]], "PP0569": [["BARMAN", "SUIPACHA"]], "PP0566": [["BARMAN", "SUIPACHA"]], "PP0568": [["BARMAN", "SUIPACHA"]], "PP0010": [["BARMAN", "SULFITO"]], "PP0250": [["BARMAN", "SULFITO"]], "PP0249": [["BARMAN", "SULFITO"]], "PP0006": [["BARMAN", "SULFITO"]], "PP0560": [["BARMAN", "SULFITO"]], "PP0562": [["BARMAN", "SULFITO"]], "PP0537": [["BARMAN", "SULFITO"]], "PP0539": [["BARMAN", "SULFITO"]], "PP0538": [["BARMAN", "SULFITO"]], "PP0524": [["BARMAN", "SULFITO"]], "PP0526": [["BARMAN", "SULFITO"]], "PP0522": [["BARMAN", "SULFITO"]], "PP0561": [["BARMAN", "SULFITO"]], "PP0251": [["BARMAN", "SULFITO"]], "PP0033": [["BARMAN", "SULFITO"]], "PP0406": [["BARMAN", "SULFITO"]], "PP0531": [["BARMAN", "SULFITO"]], "PP0442": [["BARMAN", "SULFITO"]], "PP0525": [["BARMAN", "SULFITO"]], "PP0523": [["BARMAN", "SULFITO"]], "PB0978": [["BARMAN", "SULFITO"]], "PP0015": [["BARMAN", "SULFITO"]], "PP0405": [["BARMAN", "SULFITO"]], "PP0016": [["BARMAN", "SULFITO"]], "PP0011": [["BARMAN", "SULFITO"]], "PS0646": [["IMPRESO", "33s"]], "PS0935": [["IMPRESO", "33s"]], "PS0999": [["IMPRESO", "33s"]], "PS1112": [["IMPRESO", "33s"]], "PS1111": [["IMPRESO", "33s"]], "PS0991": [["IMPRESO", "33s"]], "PS0786": [["IMPRESO", "33s"]], "PS0967": [["IMPRESO", "33s"]], "PS0139": [["IMPRESO", "33s"]], "PS0975": [["IMPRESO", "33s"]], "PS0182": [["IMPRESO", "33s"]], "PS0276": [["IMPRESO", "33s"]], "PS1098": [["IMPRESO", "33s"]], "PS0836": [["IMPRESO", "33s"]], "PS0166": [["IMPRESO", "33s"]], "PS1055": [["IMPRESO", "33s"]], "PS1045": [["IMPRESO", "33s"]], "PS1044": [["IMPRESO", "33s"]], "PS1041": [["IMPRESO", "33s"]], "PS1078": [["IMPRESO", "33s"]], "PS0980": [["IMPRESO", "33s"]], "PS0981": [["IMPRESO", "33s"]], "PS1081": [["IMPRESO", "33s"]], "PS1083": [["IMPRESO", "33s"]], "PS1084": [["IMPRESO", "33s"]], "PS1042": [["IMPRESO", "33s"]], "PS1066": [["IMPRESO", "33s"]], "PS1079": [["IMPRESO", "33s"]], "PS1063": [["IMPRESO", "33s"]], "PS0987": [["IMPRESO", "33s"]], "PS1029": [["IMPRESO", "33s"]], "PS1043": [["IMPRESO", "33s"]], "PS0554": [["IMPRESO", "33s"]], "PS0988": [["IMPRESO", "33s"]], "PS0990": [["IMPRESO", "33s"]], "PS0986": [["IMPRESO", "33s"]], "PS0976": [["IMPRESO", "33s"]], "PS0996": [["IMPRESO", "33s"]], "PS0964": [["IMPRESO", "33s"]], "PS0951": [["IMPRESO", "33s"]], "PS0606": [["IMPRESO", "33s"]], "PS0698": [["IMPRESO", "33s"]], "PS0700": [["IMPRESO", "33s"]], "PS0702": [["IMPRESO", "33s"]], "PS0756": [["IMPRESO", "33s"]], "PS0773": [["IMPRESO", "33s"]], "PS0918": [["IMPRESO", "33s"]], "PS1022": [["IMPRESO", "33s"]], "PS0703": [["IMPRESO", "33s"]], "PS1024": [["IMPRESO", "33s"]], "PS0989": [["IMPRESO", "33s"]], "PS0985": [["IMPRESO", "33s"]], "PS0454": [["IMPRESO", "33s"]], "PS0954": [["IMPRESO", "33s"]], "PS1023": [["IMPRESO", "33s"]], "PS0102": [["IMPRESO", "33s"]], "PI0031": [["IMPRESO", "33s"]], "PS0706": [["IMPRESO", "33s"]], "PS1114": [["IMPRESO", "33s"]], "PS0910": [["IMPRESO", "33s"]], "PS0912": [["IMPRESO", "33s"]], "PS0844": [["IMPRESO", "33s"]], "PS0699": [["IMPRESO", "33s"]], "PS0161": [["IMPRESO", "33s"]], "PS0807": [["IMPRESO", "33s"]], "PS0806": [["IMPRESO", "33s"]], "PS0236": [["IMPRESO", "33s"]], "PS0220": [["IMPRESO", "33s"]], "PS0952": [["IMPRESO", "33s"]], "PS0503": [["IMPRESO", "33s"]], "PS0517": [["IMPRESO", "33s"]], "PS1082": [["IMPRESO", "33s"]], "PS0285": [["IMPRESO", "33s"]], "PS0933": [["IMPRESO", "33s"]], "PS0795": [["IMPRESO", "33s"]], "PS0798": [["IMPRESO", "33s"]], "PS0960": [["IMPRESO", "33s"]], "PS0968": [["IMPRESO", "33s"]], "PS0659": [["IMPRESO", "33s"]], "PS0086": [["IMPRESO", "33s"]], "PS0675": [["IMPRESO", "33s"]], "PS0759": [["IMPRESO", "33s"]], "PS0609": [["IMPRESO", "33s"]], "PS0875": [["IMPRESO", "33s"]], "PS0287": [["IMPRESO", "33s"]], "PS0156": [["IMPRESO", "33s"]], "PS0142": [["IMPRESO", "33s"]], "PS0160": [["IMPRESO", "33s"]], "PS0874": [["IMPRESO", "33s"]], "PS0873": [["IMPRESO", "33s"]], "PS0201": [["IMPRESO", "33s"]], "PS0174": [["IMPRESO", "33s"]], "PS1050": [["IMPRESO", "33s"]], "PS0654": [["IMPRESO", "33s"]], "PS0605": [["IMPRESO", "33s"]], "PS1097": [["IMPRESO", "24s"]], "PS0297": [["IMPRESO", "24s"]], "PS0955": [["IMPRESO", "24s"]], "PS0962": [["IMPRESO", "24s"]], "PS1062": [["IMPRESO", "24s"]], "PS1034": [["IMPRESO", "24s"]], "PS1038": [["IMPRESO", "24s"]], "PS1032": [["IMPRESO", "24s"]], "PS1035": [["IMPRESO", "24s"]], "PS1039": [["IMPRESO", "24s"]], "PS1125": [["IMPRESO", "24s"]], "PS1030": [["IMPRESO", "24s"]], "PS0949": [["IMPRESO", "24s"]], "PS1049": [["IMPRESO", "24s"]], "PS0920": [["IMPRESO", "24s"]], "PS1036": [["IMPRESO", "24s"]], "PS1037": [["IMPRESO", "24s"]], "PS1033": [["IMPRESO", "24s"]], "PS0708": [["IMPRESO", "24s"]], "PS1085": [["IMPRESO", "24s"]], "PS0758": [["IMPRESO", "24s"]], "PS0749": [["IMPRESO", "24s"]], "PS0924": [["IMPRESO", "24s"]], "PS0883": [["IMPRESO", "24s"]], "PS0936": [["IMPRESO", "24s"]], "PS0938": [["IMPRESO", "24s"]], "PS0591": [["IMPRESO", "24s"]], "PS0970": [["IMPRESO", "24s"]], "PS0919": [["IMPRESO", "24s"]], "PS0782": [["IMPRESO", "24s"]], "PS0963": [["IMPRESO", "24s"]], "PS0520": [["IMPRESO", "24s"]], "PS0602": [["IMPRESO", "24s"]], "PS0607": [["IMPRESO", "24s"]], "PS0757": [["IMPRESO", "24s"]], "PS0769": [["IMPRESO", "24s"]], "PS0797": [["IMPRESO", "24s"]], "PS0850": [["IMPRESO", "24s"]], "PS0861": [["IMPRESO", "24s"]], "PS0862": [["IMPRESO", "24s"]], "PS0863": [["IMPRESO", "24s"]], "PS0871": [["IMPRESO", "24s"]], "PS0891": [["IMPRESO", "24s"]], "PS0899": [["IMPRESO", "24s"]], "PS0361": [["IMPRESO", "24s"]], "PS0901": [["IMPRESO", "24s"]], "PS1099": [["IMPRESO", "24s"]], "PS0977": [["IMPRESO", "24s"]], "PS0753": [["IMPRESO", "24s"]], "PS0997": [["IMPRESO", "24s"]], "PS1031": [["IMPRESO", "24s"]], "PS0370": [["IMPRESO", "24s"]], "PS0802": [["IMPRESO", "24s"]], "PS0765": [["IMPRESO", "24s"]], "PS0410": [["IMPRESO", "24s"]], "PS0280": [["IMPRESO", "24s"]], "PS0796": [["IMPRESO", "24s"]], "PS0905": [["IMPRESO", "24s"]], "PS0870": [["IMPRESO", "24s"]], "PS0366": [["IMPRESO", "24s"]], "PS0839": [["IMPRESO", "24s"]], "PS0105": [["IMPRESO", "24s"]], "PS0096": [["IMPRESO", "24s"]], "PS0751": [["IMPRESO", "24s"]], "PS0284": [["IMPRESO", "24s"]], "PS1051": [["IMPRESO", "24s"]], "PS0684": [["IMPRESO", "24s"]], "PS0657": [["IMPRESO", "24s"]], "PS0288": [["IMPRESO", "24s"]], "PS0966": [["IMPRESO", "18s"]], "PS0878": [["IMPRESO", "18s"]], "PS0191": [["IMPRESO", "18s"]], "PS1053": [["IMPRESO", "18s"]], "PS0411": [["IMPRESO", "18s"]], "PS0937": [["IMPRESO", "18s"]], "PS0181": [["IMPRESO", "18s"]], "PS1089": [["IMPRESO", "18s"]], "PS1087": [["IMPRESO", "18s"]], "PS1065": [["IMPRESO", "18s"]], "PS1064": [["IMPRESO", "18s"]], "PS0872": [["IMPRESO", "18s"]], "PS1056": [["IMPRESO", "18s"]], "PS0103": [["IMPRESO", "18s"]], "PS1046": [["IMPRESO", "18s"]], "PS0890": [["IMPRESO", "18s"]], "PS0911": [["IMPRESO", "18s"]], "PS0998": [["IMPRESO", "18s"]], "PS0811": [["IMPRESO", "18s"]], "PS0884": [["IMPRESO", "18s"]], "PS0921": [["IMPRESO", "18s"]], "PS0909": [["IMPRESO", "18s"]], "PS1047": [["IMPRESO", "18s"]], "PS0835": [["IMPRESO", "18s"]], "PS0978": [["IMPRESO", "18s"]], "PS0143": [["IMPRESO", "18s"]], "PS0982": [["IMPRESO", "18s"]], "PS1094": [["IMPRESO", "18s"]], "PS0813": [["IMPRESO", "18s"]], "PS0235": [["IMPRESO", "18s"]], "PS0165": [["IMPRESO", "18s"]], "PM0484": [["MANTELES", "MANTELES"]], "PM0610": [["MANTELES", "MANTELES"]], "PM0612": [["MANTELES", "MANTELES"]], "PM0551": [["MANTELES", "MANTELES"]], "PM0644": [["MANTELES", "MANTELES"]], "PM0653": [["MANTELES", "MANTELES"]], "PM0629": [["MANTELES", "MANTELES"]], "PM0518": [["MANTELES", "MANTELES"]], "PM0552": [["MANTELES", "MANTELES"]], "PM0658": [["MANTELES", "MANTELES"]], "PM0659": [["MANTELES", "MANTELES"]], "PM0550": [["MANTELES", "MANTELES"]], "PM0654": [["MANTELES", "MANTELES"]], "PM0655": [["MANTELES", "MANTELES"]], "PM0580": [["MANTELES", "MANTELES"]], "PM0546": [["MANTELES", "MANTELES"]], "PM0611": [["MANTELES", "MANTELES"]], "PM0609": [["MANTELES", "MANTELES"]], "PM0646": [["MANTELES", "MANTELES"]], "PM0220": [["MANTELES", "MANTELES"]], "PM0048": [["MANTELES", "MANTELES"]], "PM0647": [["MANTELES", "MANTELES"]], "PM0596": [["MANTELES", "MANTELES"]], "PM0597": [["MANTELES", "MANTELES"]], "PM0643": [["MANTELES", "MANTELES"]], "PM0639": [["MANTELES", "MANTELES"]], "PM0587": [["MANTELES", "MANTELES"]], "PM0641": [["MANTELES", "MANTELES"]], "PM0638": [["MANTELES", "MANTELES"]], "PM0640": [["MANTELES", "MANTELES"]], "PM0637": [["MANTELES", "MANTELES"]], "PM0598": [["MANTELES", "MANTELES"]], "PM0635": [["MANTELES", "MANTELES"]], "PM0636": [["MANTELES", "MANTELES"]], "PM0634": [["MANTELES", "MANTELES"]], "PM0633": [["MANTELES", "MANTELES"]], "PM0628": [["MANTELES", "MANTELES"]], "PM0624": [["MANTELES", "MANTELES"]], "PM0485": [["MANTELES", "MANTELES"]], "PM0581": [["MANTELES", "MANTELES"]], "PM0622": [["MANTELES", "MANTELES"]], "PM0621": [["MANTELES", "MANTELES"]], "PM0623": [["MANTELES", "MANTELES"]], "PM0620": [["MANTELES", "MANTELES"]], "PM0619": [["MANTELES", "MANTELES"]], "PM0592": [["MANTELES", "MANTELES"]], "PM0019": [["MANTELES", "MANTELES"]], "PM0022": [["MANTELES", "MANTELES"]], "PM0057": [["MANTELES", "MANTELES"]], "PM0092": [["MANTELES", "MANTELES"]], "PM0289": [["MANTELES", "MANTELES"]], "PM0315": [["MANTELES", "MANTELES"]], "PM0448": [["MANTELES", "MANTELES"]], "PM0483": [["MANTELES", "MANTELES"]], "PM0512": [["MANTELES", "MANTELES"]], "PM0520": [["MANTELES", "MANTELES"]], "PM0542": [["MANTELES", "MANTELES"]], "PM0543": [["MANTELES", "MANTELES"]], "PM0548": [["MANTELES", "MANTELES"]], "PM0553": [["MANTELES", "MANTELES"]], "PM0555": [["MANTELES", "MANTELES"]], "PM0556": [["MANTELES", "MANTELES"]], "PM0565": [["MANTELES", "MANTELES"]], "PM0570": [["MANTELES", "MANTELES"]], "PM0573": [["MANTELES", "MANTELES"]], "PM0576": [["MANTELES", "MANTELES"]], "PM0578": [["MANTELES", "MANTELES"]], "PM0579": [["MANTELES", "MANTELES"]], "PM0582": [["MANTELES", "MANTELES"]], "PM0593": [["MANTELES", "MANTELES"]], "PM0600": [["MANTELES", "MANTELES"]], "PM0605": [["MANTELES", "MANTELES"]], "PM0627": [["MANTELES", "MANTELES"]], "PM0557": [["MANTELES", "MANTELES"]], "PM0586": [["MANTELES", "MANTELES"]], "PI0043": [["MANTELES", "MANTELES"]], "PI0041": [["MANTELES", "MANTELES"]], "PI0044": [["MANTELES", "MANTELES"]], "PI0042": [["MANTELES", "MANTELES"]], "IP0013": [["MANTELES", "MANTELES"]], "PM0559": [["MANTELES", "MANTELES"]], "PM0507": [["MANTELES", "MANTELES"]], "PM0544": [["MANTELES", "MANTELES"]], "PM0549": [["MANTELES", "MANTELES"]], "PM0631": [["MANTELES", "MANTELES"]], "PM0071": [["MANTELES", "MANTELES"]], "PM0569": [["MANTELES", "MANTELES"]], "PM0613": [["MANTELES", "MANTELES"]], "PM0575": [["MANTELES", "MANTELES"]], "PM0521": [["MANTELES", "MANTELES"]], "PM0442": [["MANTELES", "MANTELES"]], "PM0481": [["MANTELES", "MANTELES"]], "PI0039": [["MANTELES", "MANTELES"]], "PM0589": [["MANTELES", "MANTELES"]], "PM0449": [["MANTELES", "MANTELES"]], "PM0514": [["MANTELES", "MANTELES"]], "PM0588": [["MANTELES", "MANTELES"]], "PM0511": [["MANTELES", "MANTELES"]], "PM0562": [["MANTELES", "MANTELES"]], "PM0606": [["MANTELES", "MANTELES"]], "PM0547": [["MANTELES", "MANTELES"]], "PM0283": [["MANTELES", "MANTELES"]], "PM0488": [["MANTELES", "MANTELES"]], "PM0571": [["MANTELES", "MANTELES"]], "PM0015": [["MANTELES", "MANTELES"]], "PM0563": [["MANTELES", "MANTELES"]], "PM0262": [["MANTELES", "MANTELES"]], "PM0577": [["MANTELES", "MANTELES"]], "PM0049": [["MANTELES", "MANTELES"]], "PM0642": [["MANTELES", "MANTELES"]], "PM0591": [["MANTELES", "MANTELES"]], "PM0490": [["MANTELES", "MANTELES"]], "PM0055": [["MANTELES", "MANTELES"]], "PM0594": [["MANTELES", "MANTELES"]], "PM0572": [["MANTELES", "MANTELES"]], "PM0618": [["MANTELES", "MANTELES"]], "PM0630": [["MANTELES", "MANTELES"]], "PM0558": [["MANTELES", "MANTELES"]], "PM0204": [["MANTELES", "MANTELES"]], "PM0617": [["MANTELES", "MANTELES"]], "PM0017": [["MANTELES", "MANTELES"]], "PM0418": [["MANTELES", "MANTELES"]], "PM0491": [["MANTELES", "MANTELES"]], "PM0119": [["MANTELES", "MANTELES"]], "PM0050": [["MANTELES", "MANTELES"]], "IP0015": [["MANTELES", "MANTELES"]], "PM0583": [["GRUPO L", "MANTELES"]], "PM0585": [["GRUPO L", "MANTELES"]], "PM0526": [["GRUPO L", "MANTELES"]], "PM0445": [["GRUPO L", "MANTELES"]], "PM0205": [["GRUPO L", "MANTELES"]], "PM0632": [["GRUPO L", "MANTELES"]], "PM0211": [["GRUPO L", "MANTELES"]], "PM0584": [["GRUPO L", "MANTELES"]], "PS1103": [["GRUPO L", "SERVILLETAS 33s"], ["LABELFLEX", "SERVILLETAS 33s"]], "PS1104": [["GRUPO L", "SERVILLETAS 33s"], ["LABELFLEX", "SERVILLETAS 33s"]], "PS1107": [["GRUPO L", "SERVILLETAS 33s"]], "PS1106": [["GRUPO L", "SERVILLETAS 33s"], ["LABELFLEX", "SERVILLETAS 33s"]], "PS1105": [["GRUPO L", "SERVILLETAS 33s"], ["LABELFLEX", "SERVILLETAS 33s"]], "PS0248": [["LABELFLEX", "SERVILLETAS 24s"]], "PM0656": [["MOSTAZA", "MANTELES"]], "PM0657": [["MOSTAZA", "MANTELES"]], "PM0604": [["MOSTAZA", "MANTELES"]], "PS0941": [["MOSTAZA", "SERVILLETAS"]], "PP0421": [["TUBOS", "ALUMINIO MANTECA"]], "PP0463": [["TUBOS", "1 KILO"]], "PP0140": [["TUBOS", "1 KILO"]], "PP0383": [["TUBOS", "1 KILO"]], "PP0049": [["TUBOS", "ALUMINIO MANTECA"]], "PP0051": [["TUBOS", "5 KILOS"]], "PP0470": [["TUBOS", "5 KILOS"]], "PP0472": [["TUBOS", "5 KILOS"]], "PP0127": [["TUBOS", "5 KILOS"]], "PP0331": [["TUBOS", "5 KILOS"]], "PP0126": [["TUBOS", "5 KILOS"]], "PF0083": [["TUBOS", "FILM familiar"]], "PP0040": [["TUBOS", "FILM familiar"]], "PF0072": [["TUBOS", "FILM 300"]], "PF0071": [["TUBOS", "FILM 300"]], "PS0582": [["TUBOS", "FILM 300"]], "PS0534": [["TUBOS", "FILM 300"]], "PS0581": [["TUBOS", "FILM 300"]], "PR0020": [["TUBOS", "FILM 300"]], "PP0286": [["TUBOS", "FILM 300"]], "PP0515": [["TUBOS", "FILM 300"]], "PF0024": [["TUBOS", "FILM 300"]], "PF0040": [["TUBOS", "FILM 300"]], "PP0042": [["TUBOS", "FILM 300"]], "PP0395": [["TUBOS", "FILM 300"]], "PP0043": [["TUBOS", "FILM 300"]], "PP0279": [["TUBOS", "FILM 300"]], "PP0451": [["TUBOS", "FILM 300"]], "PF0023": [["TUBOS", "FILM 300"]], "PP0244": [["TUBOS", "FILM 300"]], "PP0436": [["TUBOS", "FILM alto metraje"]], "PP0595": [["TUBOS", "FILM alto metraje"]], "PP0597": [["TUBOS", "FILM alto metraje"]], "PP0558": [["TUBOS", "FILM alto metraje"]], "PP0575": [["TUBOS", "FILM alto metraje"]], "PF0001": [["TUBOS", "FILM alto metraje"]], "PP0163": [["TUBOS", "FILM alto metraje"]], "PP0449": [["TUBOS", "FILM alto metraje"]], "PP0141": [["TUBOS", "FILM alto metraje"]], "PP0459": [["TUBOS", "FILM alto metraje"]], "PP0556": [["TUBOS", "FILM alto metraje"]], "PP0555": [["TUBOS", "FILM alto metraje"]], "PP0572": [["TUBOS", "FILM alto metraje"]], "PP0452": [["TUBOS", "FILM alto metraje"]], "PP0482": [["TUBOS", "FILM alto metraje"], ["FOOD PACKAGING", "FILM"]], "PP0600": [["TUBOS", "FILM alto metraje"]], "PP0601": [["TUBOS", "FILM alto metraje"]], "PP0602": [["TUBOS", "FILM alto metraje"]], "PP0603": [["TUBOS", "FILM alto metraje"]], "PP0554": [["TUBOS", "FILM alto metraje"]], "PP0599": [["TUBOS", "FILM alto metraje"]], "PP0598": [["TUBOS", "FILM alto metraje"]], "PF0039": [["TUBOS", "FILM alto metraje"]], "PP0577": [["TUBOS", "FILM alto metraje"]], "PP0559": [["TUBOS", "FILM alto metraje"]], "PF0038": [["TUBOS", "FILM alto metraje"]], "PP0143": [["TUBOS", "FILM alto metraje"]], "PP0574": [["TUBOS", "FILM alto metraje"]], "PP0434": [["TUBOS", "FILM alto metraje"]], "PP0437": [["TUBOS", "FILM alto metraje"]], "PP0596": [["TUBOS", "FILM alto metraje"]], "PP0433": [["TUBOS", "FILM alto metraje"]], "PP0576": [["TUBOS", "FILM alto metraje"]], "PP0573": [["TUBOS", "FILM alto metraje"]], "PF0037": [["TUBOS", "FILM alto metraje"]], "PS0533": [["TUBOS", "FILM alto metraje"]], "PP0438": [["TUBOS", "FILM alto metraje"]], "PP0435": [["TUBOS", "FILM alto metraje"]], "PP0592": [["TUBOS", "FILM repuesto"]], "PP0593": [["TUBOS", "FILM repuesto"]], "PP0594": [["TUBOS", "FILM repuesto"]], "PP0462": [["TUBOS", "MANTECA"]], "PS0640": [["TUBOS", "STRETCH 10 cm"]], "PS0178": [["TUBOS", "STRETCH 10 cm"]], "PS0144": [["TUBOS", "STRETCH 10 cm"]], "PS1119": [["TUBOS", "STRETCH 10 cm"]], "PS0633": [["TUBOS", "STRETCH 10 cm"]], "PS0639": [["TUBOS", "STRETCH 10 cm"]], "PS1117": [["TUBOS", "STRETCH 10 cm"]], "PS0542": [["TUBOS", "STRETCH 10 cm"]], "PP0173": [["TUBOS", "STRETCH con mango"]], "PS0138": [["TUBOS", "STRETCH con mango"]], "PS0092": [["TUBOS", "STRETCH con mango"]], "PS0525": [["TUBOS", "STRETCH con mango"]], "PS0526": [["TUBOS", "STRETCH con mango"]], "PS0950": [["TUBOS", "STRETCH con mango"]], "PS0848": [["TUBOS", "STRETCH con mango"]], "PP0424": [["TUBOS", "STRETCH con mango"]], "PS0849": [["TUBOS", "STRETCH con mango"]], "PS0617": [["TUBOS", "STRETCH con mango"]], "PS0629": [["TUBOS", "STRETCH con mango"]], "PS0090": [["TUBOS", "STRETCH sin mango"]], "PS0400": [["TUBOS", "STRETCH sin mango"]], "PS0603": [["TUBOS", "STRETCH sin mango"]], "PS0840": [["TUBOS", "STRETCH sin mango"]], "PS0814": [["TUBOS", "STRETCH sin mango"]], "PS0604": [["TUBOS", "STRETCH sin mango"]], "PS0532": [["TUBOS", "STRETCH sin mango"]], "PP0176": [["TUBOS", "STRETCH sin mango"]], "PS0459": [["TUBOS", "STRETCH sin mango"]], "PS0922": [["TUBOS", "STRETCH sin mango"]], "PS1095": [["TUBOS", "STRETCH sin mango"]], "PS0566": [["TUBOS", "STRETCH sin mango"]], "PS0917": [["TUBOS", "STRETCH sin mango"]], "PP0495": [["GANGA + FANSPAPER + NUVIA", "ALUMINIO"]], "PP0509": [["GANGA + FANSPAPER + NUVIA", "ALUMINIO"]], "PP0501": [["GANGA + FANSPAPER + NUVIA", "ALUMINIO"]], "PP0496": [["GANGA + FANSPAPER + NUVIA", "FILM FAMILIAR"]], "PP0503": [["GANGA + FANSPAPER + NUVIA", "FILM FAMILIAR"]], "PP0511": [["GANGA + FANSPAPER + NUVIA", "FILM FAMILIAR"]], "PP0497": [["GANGA + FANSPAPER + NUVIA", "MANTECA"]], "PP0510": [["GANGA + FANSPAPER + NUVIA", "MANTECA"]], "PP0502": [["GANGA + FANSPAPER + NUVIA", "MANTECA"]], "PP0050": [["GRUPO L", "ALUMINIO"]], "PP0432": [["GRUPO L", "FILM alto metraje"]], "PP0431": [["GRUPO L", "FILM alto metraje"]], "PP0430": [["GRUPO L", "FILM alto metraje"]], "PP0052": [["GRUPO L", "MANTECA 1 KILO"]], "PE2500": [["VYMAT", "VYMAT INTERC BEIGE"]], "PT1304": [["VYMAT", "VYMAT INTERC BEIGE"]], "PT1245": [["VYMAT", "VYMAT INTERC BEIGE"]], "PT1183": [["VYMAT", "VYMAT INTERC BEIGE"]], "PT1278": [["VYMAT", "VYMAT INTERC BEIGE"]], "PT1273": [["VYMAT", "VYMAT INTERC BEIGE"]], "PT1266": [["VYMAT", "VYMAT INTERC BEIGE"]], "PT1267": [["VYMAT", "VYMAT INTERC BEIGE"]], "PT1292": [["VYMAT", "VYMAT INTERC BEIGE"]], "PT1072": [["VYMAT", "VYMAT INTERC BEIGE"]], "PT1269": [["VYMAT", "VYMAT INTERC BEIGE"]], "PT1254": [["VYMAT", "VYMAT INTERC BEIGE"]], "PT1164": [["VYMAT", "VYMAT INTERC BEIGE"]], "LT0055": [["VYMAT", "VYMAT INTERC BEIGE"]], "PT1336": [["VYMAT", "VYMAT INTERC BEIGE"]], "PT1231": [["VYMAT", "VYMAT INTERC BEIGE"]], "PT1089": [["VYMAT", "VYMAT INTERC BEIGE"]], "LT0020": [["VYMAT", "VYMAT INTERC BEIGE"]], "LT0059": [["VYMAT", "VYMAT INTERC BEIGE"]], "LT0167": [["VYMAT", "VYMAT INTERC BEIGE"]], "PT1079": [["VYMAT", "VYMAT INTERC BEIGE"]], "LT0047": [["VYMAT", "VYMAT INTERC BEIGE"]], "PT1118": [["VYMAT", "VYMAT INTERC BLANCA PURA"]], "PT1334": [["VYMAT", "VYMAT INTERC BLANCA PURA"]], "PT1335": [["VYMAT", "VYMAT INTERC BLANCA PURA"]], "LT0022": [["VYMAT", "VYMAT INTERC BLANCA PURA"]], "PT1333": [["VYMAT", "VYMAT INTERC BLANCA PURA"]], "PT1338": [["VYMAT", "VYMAT INTERC BLANCA PURA"]], "LT0166": [["VYMAT", "VYMAT INTERC BLANCA PURA"]], "PT1181": [["VYMAT", "VYMAT INTERC BLANCA PURA"]], "PT1314": [["VYMAT", "VYMAT INTERC BLANCA PURA"]], "PT1311": [["VYMAT", "VYMAT INTERC BLANCA PURA"]], "LT0158": [["VYMAT", "VYMAT INTERC BLANCA PURA"]], "PT1189": [["VYMAT", "VYMAT INTERC BLANCA PURA"]], "PT1260": [["VYMAT", "VYMAT INTERC BLANCA PURA"]], "PT1133": [["VYMAT", "VYMAT INTERC BLANCA PURA"]], "PT1162": [["VYMAT", "VYMAT INTERC BLANCA PURA"]], "LT0052": [["VYMAT", "VYMAT INTERC BLANCA PURA"]], "PA2500": [["VYMAT", "VYMAT INTERC BLANCA PURA"]], "LT0171": [["VYMAT", "VYMAT INTERC BLANCA PURA"]], "PT1124": [["VYMAT", "VYMAT INTERC BLANCA PURA"]], "PT1303": [["VYMAT", "VYMAT INTERC BLANCA PURA"]], "LT0162": [["VYMAT", "VYMAT INTERC BLANCA PURA"]], "PT1349": [["VYMAT", "VYMAT INTERC BLANCA 2"]], "LT0021": [["VYMAT", "VYMAT INTERC BLANCA 2"]], "PT1342": [["VYMAT", "VYMAT INTERC BLANCA 2"]], "LT0046": [["VYMAT", "VYMAT INTERC BLANCA 2"]], "PT1306": [["VYMAT", "VYMAT INTERC BLANCA 2"]], "PT1134": [["VYMAT", "VYMAT INTERC BLANCA 2"]], "PT1346": [["VYMAT", "VYMAT INTERC BLANCA 2"]], "PT1348": [["VYMAT", "VYMAT INTERC BLANCA 2"]], "LT0165": [["VYMAT", "VYMAT INTERC BLANCA 2"]], "PT1328": [["VYMAT", "VYMAT INTERC BLANCA 2"]], "LT0175": [["VYMAT", "VYMAT INTERC BLANCA 2"]], "PT1293": [["VYMAT", "VYMAT INTERC BLANCA 2"]], "PT1127": [["VYMAT", "VYMAT INTERC BLANCA 2"]], "PT1255": [["VYMAT", "VYMAT INTERC BLANCA 2"]], "PT1274": [["VYMAT", "VYMAT INTERC BLANCA 2"]], "PT1275": [["VYMAT", "VYMAT INTERC BLANCA 2"]], "PT1147": [["VYMAT", "VYMAT INTERC BLANCA 2"]], "LT0045": [["VYMAT", "VYMAT INTERC BLANCA 2"]], "LT0060": [["VYMAT", "VYMAT INTERC BLANCA 2"]], "PT1230": [["VYMAT", "VYMAT INTERC BLANCA 2"]], "PT1126": [["VYMAT", "VYMAT INTERC BLANCA 2"]], "PT1119": [["VYMAT", "VYMAT INTERC BLANCA 2"]], "PB2500": [["VYMAT", "VYMAT INTERC BLANCA 2"]], "LP0114": [["VYMAT", "VYMAT ROLLOS"]], "PB1180": [["VYMAT", "MAQUINA ANIMAL"]], "LB0315": [["VYMAT", "MAQUINA ANIMAL"]], "PP1205": [["VYMAT", "MAQUINA ANIMAL"]], "PB1169": [["VYMAT", "MAQUINA ANIMAL"]], "PP1072": [["VYMAT", "MAQUINA ANIMAL"]], "PB1141": [["VYMAT", "MAQUINA ANIMAL"]], "PT1305": [["VYMAT", "MAQUINA ANIMAL"]], "PP1062": [["VYMAT", "MAQUINA ANIMAL"]], "LP0152": [["VYMAT", "MAQUINA ANIMAL"]], "PP1185": [["VYMAT", "MAQUINA ANIMAL"]], "LT0121": [["VYMAT", "MAQUINA ANIMAL"]], "PB1150": [["VYMAT", "MAQUINA ANIMAL"]], "LT0169": [["VYMAT", "MAQUINA ANIMAL"]], "PP1068": [["VYMAT", "MAQUINA ANIMAL"]], "PP1222": [["VYMAT", "MAQUINA ANIMAL"]], "PP1178": [["VYMAT", "MAQUINA ANIMAL"]], "PB1066": [["VYMAT", "MAQUINA ANIMAL"]], "LB0317": [["VYMAT", "MAQUINA ANIMAL"]], "PB1130": [["VYMAT", "MAQUINA ANIMAL"]], "PT1340": [["VYMAT", "MAQUINA ANIMAL"]], "PP1217": [["VYMAT", "MAQUINA ANIMAL"]], "PT1329": [["VYMAT", "MAQUINA ANIMAL"]], "PB1151": [["VYMAT", "MAQUINA ANIMAL"]], "PP1215": [["VYMAT", "MAQUINA ANIMAL"]], "PB1144": [["VYMAT", "MAQUINA ANIMAL"]], "PB1145": [["VYMAT", "MAQUINA ANIMAL"]], "PP1149": [["VYMAT", "MAQUINA ANIMAL"]], "PT1320": [["VYMAT", "MAQUINA ANIMAL"]], "PP1207": [["VYMAT", "MAQUINA ANIMAL"]], "PP1208": [["VYMAT", "MAQUINA ANIMAL"]], "PP1134": [["VYMAT", "MAQUINA ANIMAL"]], "PB1131": [["VYMAT", "MAQUINA ANIMAL"]], "PP1189": [["VYMAT", "MAQUINA ANIMAL"]], "PT1283": [["VYMAT", "MAQUINA ANIMAL"]], "LP0310": [["VYMAT", "MAQUINA ANIMAL"]], "PB1087": [["VYMAT", "MAQUINA ANIMAL"]], "PP1166": [["VYMAT", "MAQUINA ANIMAL"]], "PT1277": [["VYMAT", "MAQUINA ANIMAL"]], "PB1034": [["VYMAT", "MAQUINA ANIMAL"]], "PB1121": [["VYMAT", "MAQUINA ANIMAL"]], "PB1107": [["VYMAT", "MAQUINA ANIMAL"]], "PB1063": [["VYMAT", "MAQUINA ANIMAL"]], "PP1186": [["VYMAT", "MAQUINA ANIMAL"]], "LB0405": [["VYMAT", "MAQUINA ANIMAL"]], "PP1169": [["VYMAT", "MAQUINA ANIMAL"]], "PP1133": [["VYMAT", "MAQUINA ANIMAL"]], "LP0101": [["VYMAT", "MAQUINA ANIMAL"]], "PT1313": [["VYMAT", "MAQUINA ANIMAL"]], "PB1115": [["VYMAT", "MAQUINA ANIMAL"]], "PP1212": [["VYMAT", "MAQUINA ANIMAL"]], "PP1196": [["VYMAT", "MAQUINA ANIMAL"]], "PP1201": [["VYMAT", "MAQUINA ANIMAL"]], "LP0151": [["VYMAT", "MAQUINA ANIMAL"]], "LT0058": [["VYMAT", "MAQUINA ANIMAL"]], "PP1156": [["VYMAT", "MAQUINA ANIMAL"]], "PT1206": [["VYMAT", "MAQUINA ANIMAL"]], "LP0153": [["VYMAT", "MAQUINA ANIMAL"]], "PP1211": [["VYMAT", "MAQUINA ANIMAL"]], "PP1188": [["VYMAT", "MAQUINA ANIMAL"]], "LT0103": [["VYMAT", "MAQUINA ANIMAL"]], "PP1152": [["VYMAT", "MAQUINA ANIMAL"]], "PB1067": [["VYMAT", "MAQUINA ANIMAL"]], "PB1136": [["VYMAT", "MAQUINA ANIMAL"]], "LB0432": [["VYMAT", "MAQUINA ANIMAL"]], "PT1214": [["VYMAT", "MAQUINA ANIMAL"]], "PP1165": [["VYMAT", "MAQUINA ANIMAL"]], "PT1203": [["VYMAT", "MAQUINA ANIMAL"]], "PB1089": [["VYMAT", "MAQUINA ANIMAL"]], "PP1067": [["VYMAT", "MAQUINA ANIMAL"]], "PT1276": [["VYMAT", "MAQUINA ANIMAL"]], "PP1200": [["VYMAT", "MAQUINA ANIMAL"]], "PP1153": [["VYMAT", "MAQUINA ANIMAL"]], "PT1233": [["VYMAT", "MAQUINA ANIMAL"]], "PP1167": [["VYMAT", "MAQUINA ANIMAL"]], "PB1088": [["VYMAT", "MAQUINA ANIMAL"]], "PT1235": [["VYMAT", "MAQUINA ANIMAL"]], "PP1105": [["VYMAT", "MAQUINA ANIMAL"]], "LB0321": [["VYMAT", "MAQUINA ANIMAL"]], "PP1181": [["VYMAT", "MAQUINA ANIMAL"]], "PT1271": [["VYMAT", "MAQUINA ANIMAL"]], "PB1068": [["VYMAT", "MAQUINA ANIMAL"]], "PT1232": [["VYMAT", "MAQUINA ANIMAL"]], "LP0119": [["VYMAT", "MAQUINA ANIMAL"]], "LP0111": [["VYMAT", "MAQUINA ANIMAL"]], "PP1132": [["VYMAT", "MAQUINA ANIMAL"]], "LB0314": [["VYMAT", "MAQUINA ANIMAL"]], "PP1195": [["VYMAT", "MAQUINA ANIMAL"]], "LB0431": [["VYMAT", "MAQUINA ANIMAL"]], "PP1130": [["VYMAT", "MAQUINA ANIMAL"]], "LB0316": [["VYMAT", "MAQUINA ANIMAL"]], "LP0113": [["VYMAT", "MAQUINA ANIMAL"]], "LP0118": [["VYMAT", "MAQUINA ANIMAL"]], "PB1142": [["VYMAT", "MAQUINA ANIMAL"]], "PB1174": [["VYMAT", "VYMAT ROLLOS"]], "PT1045": [["VYMAT", "MAQUINA AUTOMATICA"]], "PB1095": [["VYMAT", "MAQUINA AUTOMATICA"]], "PT1351": [["VYMAT", "MAQUINA AUTOMATICA"]], "LB0302": [["VYMAT", "MAQUINA AUTOMATICA"]], "PP1221": [["VYMAT", "MAQUINA AUTOMATICA"]], "LB0303": [["VYMAT", "MAQUINA AUTOMATICA"]], "LB0318": [["VYMAT", "MAQUINA AUTOMATICA"]], "PP1170": [["VYMAT", "MAQUINA AUTOMATICA"]], "PB1109": [["VYMAT", "MAQUINA AUTOMATICA"]], "LT0160": [["VYMAT", "MAQUINA AUTOMATICA"]], "LP0112": [["VYMAT", "MAQUINA AUTOMATICA"]], "PT1171": [["VYMAT", "MAQUINA AUTOMATICA"]], "PP1224": [["VYMAT", "MAQUINA AUTOMATICA"]], "PB1152": [["VYMAT", "MAQUINA AUTOMATICA"]], "PP1223": [["VYMAT", "MAQUINA AUTOMATICA"]], "PB1176": [["VYMAT", "MAQUINA AUTOMATICA"]], "LT0151": [["VYMAT", "MAQUINA AUTOMATICA"]], "PB1128": [["VYMAT", "MAQUINA AUTOMATICA"]], "PT1316": [["VYMAT", "MAQUINA AUTOMATICA"]], "PB1153": [["VYMAT", "MAQUINA AUTOMATICA"]], "PT1341": [["VYMAT", "MAQUINA AUTOMATICA"]], "PT1298": [["VYMAT", "MAQUINA AUTOMATICA"]], "PT1310": [["VYMAT", "MAQUINA AUTOMATICA"]], "PP1171": [["VYMAT", "MAQUINA AUTOMATICA"]], "LB0552": [["VYMAT", "MAQUINA AUTOMATICA"]], "PT1339": [["VYMAT", "MAQUINA AUTOMATICA"]], "PT1312": [["VYMAT", "MAQUINA AUTOMATICA"]], "PT1337": [["VYMAT", "MAQUINA AUTOMATICA"]], "PB1123": [["VYMAT", "MAQUINA AUTOMATICA"]], "PB1124": [["VYMAT", "MAQUINA AUTOMATICA"]], "PB1122": [["VYMAT", "MAQUINA AUTOMATICA"]], "PB1125": [["VYMAT", "MAQUINA AUTOMATICA"]], "PB1061": [["VYMAT", "MAQUINA AUTOMATICA"]], "PT1294": [["VYMAT", "MAQUINA AUTOMATICA"]], "PB1149": [["VYMAT", "MAQUINA AUTOMATICA"]], "PT1331": [["VYMAT", "MAQUINA AUTOMATICA"]], "PB1140": [["VYMAT", "MAQUINA AUTOMATICA"]], "PP1204": [["VYMAT", "MAQUINA AUTOMATICA"]], "PT1198": [["VYMAT", "MAQUINA AUTOMATICA"]], "PT1172": [["VYMAT", "MAQUINA AUTOMATICA"]], "PB1117": [["VYMAT", "MAQUINA AUTOMATICA"]], "PP1162": [["VYMAT", "MAQUINA AUTOMATICA"]], "LB0323": [["VYMAT", "MAQUINA AUTOMATICA"]], "PT1280": [["VYMAT", "MAQUINA AUTOMATICA"]], "PT1281": [["VYMAT", "MAQUINA AUTOMATICA"]], "PB1072": [["VYMAT", "MAQUINA AUTOMATICA"]], "PB1112": [["VYMAT", "MAQUINA AUTOMATICA"]], "LT0153": [["VYMAT", "MAQUINA AUTOMATICA"]], "PB1106": [["VYMAT", "MAQUINA AUTOMATICA"]], "PB1113": [["VYMAT", "MAQUINA AUTOMATICA"]], "PT1213": [["VYMAT", "MAQUINA AUTOMATICA"]], "PT1204": [["VYMAT", "MAQUINA AUTOMATICA"]], "PB1085": [["VYMAT", "MAQUINA AUTOMATICA"]], "PP1176": [["VYMAT", "MAQUINA AUTOMATICA"]], "PT1044": [["VYMAT", "MAQUINA AUTOMATICA"]], "PP1108": [["VYMAT", "MAQUINA AUTOMATICA"]], "PP1177": [["VYMAT", "MAQUINA AUTOMATICA"]], "LT0157": [["VYMAT", "MAQUINA AUTOMATICA"]], "LT0152": [["VYMAT", "MAQUINA AUTOMATICA"]], "PT1202": [["VYMAT", "MAQUINA AUTOMATICA"]], "PP1210": [["VYMAT", "MAQUINA AUTOMATICA"]], "PT1211": [["VYMAT", "MAQUINA AUTOMATICA"]], "LT0170": [["VYMAT", "MAQUINA AUTOMATICA"]], "PP1154": [["VYMAT", "MAQUINA AUTOMATICA"]], "PT1263": [["VYMAT", "MAQUINA AUTOMATICA"]], "PB1116": [["VYMAT", "MAQUINA AUTOMATICA"]], "PT1223": [["VYMAT", "MAQUINA AUTOMATICA"]], "PB1099": [["VYMAT", "MAQUINA AUTOMATICA"]], "PT1309": [["VYMAT", "MAQUINA AUTOMATICA"]], "PT1332": [["VYMAT", "MAQUINA AUTOMATICA"]], "PP1182": [["VYMAT", "MAQUINA AUTOMATICA"]], "PT1307": [["VYMAT", "MAQUINA AUTOMATICA"]], "LT0025": [["VYMAT", "MAQUINA AUTOMATICA"]], "PT1199": [["VYMAT", "MAQUINA AUTOMATICA"]], "PB1086": [["VYMAT", "MAQUINA AUTOMATICA"]], "PP1183": [["VYMAT", "MAQUINA AUTOMATICA"]], "PT1319": [["VYMAT", "MAQUINA AUTOMATICA"]], "LT0122": [["VYMAT", "MAQUINA AUTOMATICA"]], "PP1179": [["VYMAT", "MAQUINA AUTOMATICA"]], "PT1228": [["VYMAT", "MAQUINA AUTOMATICA"]], "PT1270": [["VYMAT", "MAQUINA AUTOMATICA"]], "LP0342": [["VYMAT", "MAQUINA AUTOMATICA"]], "LT0102": [["VYMAT", "MAQUINA AUTOMATICA"]], "PB0847": [["VYMAT", "MAQUINA AUTOMATICA"]], "PP1168": [["VYMAT", "MAQUINA AUTOMATICA"]], "PT1227": [["VYMAT", "MAQUINA AUTOMATICA"]], "PB1084": [["VYMAT", "MAQUINA AUTOMATICA"]], "PB1094": [["VYMAT", "MAQUINA AUTOMATICA"]], "PT1184": [["VYMAT", "MAQUINA AUTOMATICA"]], "PB1096": [["VYMAT", "MAQUINA AUTOMATICA"]], "PT1251": [["VYMAT", "MAQUINA AUTOMATICA"]], "PT1220": [["VYMAT", "MAQUINA AUTOMATICA"]], "PB1093": [["VYMAT", "MAQUINA AUTOMATICA"]], "PP1129": [["VYMAT", "MAQUINA AUTOMATICA"]], "PB1108": [["VYMAT", "MAQUINA AUTOMATICA"]], "PP1128": [["VYMAT", "MAQUINA AUTOMATICA"]], "PB1143": [["VYMAT", "MAQUINA AUTOMATICA"]], "PT1024": [["VYMAT", "MAQUINA AUTOMATICA"]], "LT0156": [["VYMAT", "MAQUINA AUTOMATICA"]], "PP1131": [["VYMAT", "MAQUINA AUTOMATICA"]], "LB0324": [["VYMAT", "MAQUINA AUTOMATICA"]], "PT1229": [["VYMAT", "MAQUINA AUTOMATICA"]], "PB1118": [["AROMES", "MAQUINA ANIMAL"]], "PB1119": [["AROMES", "MAQUINA ANIMAL"]], "PB1103": [["AROMES", "MAQUINA AUTOMATICA"]], "PP1180": [["AROMES", "MAQUINA AUTOMATICA"]], "PP1184": [["AROMES", "MAQUINA AUTOMATICA"]], "PT1086": [["DELMAR", "VYMAT INTERC BEIGE"]], "PT1078": [["DELMAR", "VYMAT INTERC BEIGE"]], "LT0056": [["DELMAR", "VYMAT INTERC BEIGE"]], "PT1253": [["DELMAR", "VYMAT INTERC BLANCA PURA"]], "PT1125": [["DELMAR", "VYMAT INTERC BLANCA 2"]], "PP1081": [["DELMAR", "MAQUINA ANIMAL"]], "PP1070": [["DELMAR", "MAQUINA ANIMAL"]], "LP0149": [["DELMAR", "MAQUINA ANIMAL"]], "LP0150": [["DELMAR", "MAQUINA ANIMAL"]], "PP1074": [["DELMAR", "MAQUINA ANIMAL"]], "PB1009": [["DELMAR", "MAQUINA AUTOMATICA"]], "PB1154": [["DELMAR", "MAQUINA AUTOMATICA"]], "PT1036": [["DELMAR", "MAQUINA AUTOMATICA"]], "PT1279": [["FOOD PACKAGING", "INTERC BLANCA 2"]], "PT1264": [["FOOD PACKAGING", "INTERC BEIGE"]], "PB1110": [["FOOD PACKAGING", "ROLLOS"]], "PP1172": [["FOOD PACKAGING", "MAQUINA AUTOMATICA"]], "PP1173": [["FOOD PACKAGING", "MAQUINA AUTOMATICA"]], "PB1111": [["FOOD PACKAGING", "MAQUINA AUTOMATICA"]], "PT1265": [["FOOD PACKAGING", "MAQUINA AUTOMATICA"]], "PP0487": [["FOOD PACKAGING", "FILM"]], "PP0469": [["FOOD PACKAGING", "FILM"]], "PP0488": [["FOOD PACKAGING", "FILM"]], "PP0486": [["FOOD PACKAGING", "FILM"]], "PP1157": [["GRUPO L", "MAQUINA ANIMAL"]], "PT1272": [["GRUPO L", "MAQUINA AUTOMATICA"]], "PB1104": [["GRUPO L", "MAQUINA AUTOMATICA"]], "PB1074": [["GRUPO L", "MAQUINA AUTOMATICA"]], "PP0499": [["GRUPO L", "MAQUINA AUTOMATICA"]], "PT1242": [["GRUPO L", "VYMAT INTERC BLANCA 2"]], "PP1151": [["LABELFLEX", "VYMAT ROLLOS"]], "PP1150": [["LABELFLEX", "MAQUINA ANIMAL"]], "PP1198": [["NAVAS", "NAVAS"]], "PT1290": [["NAVAS", "NAVAS"]], "PB1132": [["NAVAS", "NAVAS"]], "PB1133": [["NAVAS", "NAVAS"]], "PP1199": [["NAVAS", "NAVAS"]], "PT1180": [["NAVAS", "NAVAS"]], "PT1182": [["NAVAS", "NAVAS"]], "PT1146": [["NAVAS", "NAVAS"]], "PT1257": [["PIRELUX", "VYMAT INTERC BEIGE"]], "PT1256": [["PIRELUX", "VYMAT INTERC BLANCA PURA"]], "PB1102": [["PIRELUX", "MAQUINA ANIMAL"]], "PT1258": [["PIRELUX", "MAQUINA ANIMAL"]], "PT1160": [["POLYLIMP", "VYMAT INTERC BEIGE"]], "PT1159": [["POLYLIMP", "VYMAT INTERC BLANCA PURA"]], "PT1153": [["POLYLIMP", "VYMAT INTERC BLANCA 2"]], "PB1056": [["POLYLIMP", "MAQUINA ANIMAL"]], "PP1102": [["POLYLIMP", "MAQUINA ANIMAL"]], "PP1103": [["POLYLIMP", "MAQUINA ANIMAL"]], "PB1053": [["POLYLIMP", "MAQUINA AUTOMATICA"]], "PB1057": [["POLYLIMP", "MAQUINA AUTOMATICA"]], "PT1155": [["POLYLIMP", "MAQUINA AUTOMATICA"]], "PT1327": [["SUIPACHA", "VYMAT INTERC BEIGE"]], "PT1326": [["SUIPACHA", "VYMAT INTERC BLANCA 2"]], "PT1325": [["SUIPACHA", "VYMAT INTERC BLANCA 2"]], "PP1219": [["SUIPACHA", "MAQUINA ANIMAL"]], "PP1214": [["SUIPACHA", "MAQUINA ANIMAL"]], "PT1323": [["SUIPACHA", "MAQUINA ANIMAL"]], "PT1324": [["SUIPACHA", "MAQUINA ANIMAL"]], "PB1146": [["SUIPACHA", "MAQUINA AUTOMATICA"]], "PP1213": [["SUIPACHA", "MAQUINA AUTOMATICA"]], "PT1321": [["SUIPACHA", "MAQUINA AUTOMATICA"]], "PT1322": [["SUIPACHA", "MAQUINA AUTOMATICA"]], "PP1218": [["SUIPACHA", "MAQUINA AUTOMATICA"]]};
+const SEGMENT_ORDER = ["BARMAN", "IMPRESO", "MANTELES", "GRUPO L", "LABELFLEX", "MOSTAZA", "TUBOS", "GANGA + FANSPAPER + NUVIA", "VYMAT", "AROMES", "DELMAR", "FOOD PACKAGING", "NAVAS", "PIRELUX", "POLYLIMP", "SUIPACHA"];
+
+function csvUrl(gid) {
+  return "https://docs.google.com/spreadsheets/d/e/" + SHEET_KEY + "/pub?gid=" + gid + "&single=true&output=csv";
+}
+
+// Parser CSV robusto (maneja comillas y comas dentro de campos)
+function parseCSV(text) {
+  const rows = [];
+  let row = [];
+  let field = '';
+  let inQuotes = false;
+  for (let i = 0; i < text.length; i++) {
+    const c = text[i];
+    if (inQuotes) {
+      if (c === '"') {
+        if (text[i+1] === '"') { field += '"'; i++; }
+        else { inQuotes = false; }
+      } else {
+        field += c;
+      }
+    } else {
+      if (c === '"') inQuotes = true;
+      else if (c === ',') { row.push(field); field = ''; }
+      else if (c === '\n') { row.push(field); rows.push(row); row = []; field = ''; }
+      else if (c === '\r') { /* ignore */ }
+      else field += c;
+    }
+  }
+  if (field.length > 0 || row.length > 0) { row.push(field); rows.push(row); }
+  if (!rows.length) return [];
+  const headers = rows[0].map(h => h.trim());
+  return rows.slice(1).filter(r => r.length > 1 || (r[0] && r[0].trim())).map(r => {
+    const obj = {};
+    headers.forEach((h, idx) => { obj[h] = (r[idx] !== undefined ? r[idx] : '').trim(); });
+    return obj;
+  });
+}
+
+function parseNum(s) {
+  if (s === null || s === undefined) return 0;
+  s = String(s).trim();
+  if (s === '') return 0;
+  if (s.includes(',') && s.includes('.')) {
+    s = s.replace(/\./g, '').replace(',', '.');
+  } else if (s.includes(',')) {
+    s = s.replace(',', '.');
+  }
+  const n = parseFloat(s);
+  return isNaN(n) ? 0 : n;
+}
+
+function fmtNum(n) {
+  return n.toLocaleString('es-AR', { maximumFractionDigits: 2 });
+}
+
+async function fetchCSV(gid) {
+  const res = await fetch(csvUrl(gid), { cache: 'no-store' });
+  if (!res.ok) throw new Error('HTTP ' + res.status);
+  const text = await res.text();
+  return parseCSV(text);
+}
+
+let STATE = { segmentData: {}, newCodes: [], counts: {}, sinCobertura: 0 };
+
+async function loadAll() {
+  document.getElementById('status').textContent = 'Actualizando...';
+  document.getElementById('errorBanner').style.display = 'none';
+  document.getElementById('refreshBtn').disabled = true;
+  try {
+    const [stockRows, ocBarman, ocGrafica, ocTubos, ocVymat] = await Promise.all([
+      fetchCSV(GIDS.STOCK_CENTRAL),
+      fetchCSV(GIDS.OC_BARMAN),
+      fetchCSV(GIDS.OC_GRAFICA),
+      fetchCSV(GIDS.OC_TUBOS),
+      fetchCSV(GIDS.OC_VYMAT),
+    ]);
+
+    // Mapa de OC: código -> { saldoEnviar, ords:Set, origenes:Set }
+    const ocSets = { 'OC BARMAN': ocBarman, 'OC GRAFICA': ocGrafica, 'OC TUBOS': ocTubos, 'OC VYMAT': ocVymat };
+    const ocMap = {};
+    for (const [origen, rows] of Object.entries(ocSets)) {
+      for (const r of rows) {
+        const cod = (r['COD'] || '').trim();
+        if (!cod) continue;
+        if (!ocMap[cod]) ocMap[cod] = { saldoEnviar: 0, ords: new Set(), origenes: new Set() };
+        ocMap[cod].saldoEnviar += parseNum(r['SALDO ENVIAR']);
+        if (r['ORD COM']) ocMap[cod].ords.add(r['ORD COM'].trim());
+        ocMap[cod].origenes.add(origen);
+      }
+    }
+
+    // Construir segmentos
+    const segmentData = {};
+    SEGMENT_ORDER.forEach(s => segmentData[s] = {});
+    const newCodes = [];
+    let totalNegativos = 0;
+    let sinCobertura = 0;
+
+    for (const r of stockRows) {
+      const cod = (r['CODIGO'] || '').trim();
+      if (!cod) continue;
+      const stockDisp = parseNum(r['STOCK DISPONIBLE']);
+      if (stockDisp >= 0) continue;
+
+      totalNegativos++;
+      const desc = r['MATERIA PRIMA'] || '';
+      const ocInfo = ocMap[cod];
+      const saldoEnviar = ocInfo ? ocInfo.saldoEnviar : 0;
+      const ords = ocInfo ? Array.from(ocInfo.ords).join(', ') : '';
+      const ocDif = stockDisp + saldoEnviar;
+      if (ocDif < 0) sinCobertura++;
+
+      const rowData = { cod, desc, stockDisp, ords, saldoEnviar, ocDif };
+
+      const clases = CLASSIFICATION[cod];
+      if (!clases || clases.length === 0) {
+        const origenOC = ocInfo ? Array.from(ocInfo.origenes).join(', ') : null;
+        newCodes.push({ ...rowData, origen: origenOC || 'Sin OC asociada (detectado en STOCK CENTRAL)' });
+      } else {
+        for (const [segmento, familia] of clases) {
+          if (!segmentData[segmento]) segmentData[segmento] = {};
+          const fam = familia || 'SIN FAMILIA';
+          if (!segmentData[segmento][fam]) segmentData[segmento][fam] = [];
+          segmentData[segmento][fam].push(rowData);
+        }
+      }
+    }
+
+    // ordenar cada familia por stock más negativo primero
+    for (const seg of Object.keys(segmentData)) {
+      for (const fam of Object.keys(segmentData[seg])) {
+        segmentData[seg][fam].sort((a, b) => a.stockDisp - b.stockDisp);
+      }
+    }
+    newCodes.sort((a, b) => a.stockDisp - b.stockDisp);
+
+    STATE = { segmentData, newCodes, totalNegativos, sinCobertura };
+    renderTabs();
+    renderActive();
+    updateKPIs();
+
+    const now = new Date().toLocaleString('es-AR');
+    document.getElementById('status').textContent = 'Actualizado: ' + now;
+    document.getElementById('kpis').style.display = 'flex';
+  } catch (err) {
+    console.error(err);
+    document.getElementById('errorBanner').textContent = 'No se pudo actualizar la información: ' + err.message + '. Verificá la conexión o que el Google Sheets siga publicado.';
+    document.getElementById('errorBanner').style.display = 'block';
+    document.getElementById('status').textContent = 'Error al actualizar';
+  } finally {
+    document.getElementById('refreshBtn').disabled = false;
+  }
+}
+
+let activeTab = SEGMENT_ORDER[0];
+
+function renderTabs() {
+  const tabsEl = document.getElementById('tabs');
+  tabsEl.innerHTML = '';
+  SEGMENT_ORDER.forEach(seg => {
+    const familias = STATE.segmentData[seg] || {};
+    const count = Object.values(familias).reduce((acc, arr) => acc + arr.length, 0);
+    const btn = document.createElement('button');
+    btn.className = 'tab-btn' + (seg === activeTab ? ' active' : '') + (count === 0 ? ' empty' : '');
+    btn.innerHTML = seg + ' <span class="count">' + count + '</span>';
+    btn.onclick = () => { activeTab = seg; renderTabs(); renderActive(); };
+    tabsEl.appendChild(btn);
+  });
+  const newBtn = document.createElement('button');
+  const newCount = STATE.newCodes ? STATE.newCodes.length : 0;
+  newBtn.className = 'tab-btn new-tab' + (activeTab === '__NEW__' ? ' active' : '');
+  newBtn.innerHTML = '⚠ CÓDIGOS NUEVOS ENCONTRADOS <span class="count">' + newCount + '</span>';
+  newBtn.onclick = () => { activeTab = '__NEW__'; renderTabs(); renderActive(); };
+  tabsEl.appendChild(newBtn);
+}
+
+function rowHTML(r) {
+  const ocDifClass = r.ocDif >= 0 ? 'ocdif-cubierto' : 'ocdif-falta';
+  return '<tr>' +
+    '<td>' + r.cod + '</td>' +
+    '<td>' + r.desc + '</td>' +
+    '<td class="neg">' + fmtNum(r.stockDisp) + '</td>' +
+    '<td class="muted">' + (r.ords || '—') + '</td>' +
+    '<td>' + (r.saldoEnviar ? fmtNum(r.saldoEnviar) : '—') + '</td>' +
+    '<td class="' + ocDifClass + '">' + fmtNum(r.ocDif) + '</td>' +
+    '</tr>';
+}
+
+function renderActive() {
+  const main = document.getElementById('main');
+  main.innerHTML = '';
+
+  if (activeTab === '__NEW__') {
+    const list = STATE.newCodes || [];
+    if (!list.length) {
+      main.innerHTML = '<div class="empty-msg">No hay códigos nuevos sin clasificar. Todo lo que está en negativo ya pertenece a un grupo conocido.</div>';
+      return;
+    }
+    const block = document.createElement('div');
+    block.className = 'familia-block';
+    block.innerHTML = '<div class="familia-title">Códigos con stock negativo que no están clasificados en ningún grupo (' + list.length + ')</div>';
+    const table = document.createElement('table');
+    table.innerHTML = '<thead><tr><th>Código</th><th>Descripción</th><th>Stock negativo</th><th>Encontrado en</th></tr></thead><tbody>' +
+      list.map(r => '<tr><td>' + r.cod + '</td><td>' + r.desc + '</td><td class="neg">' + fmtNum(r.stockDisp) + '</td><td class="muted">' + r.origen + '</td></tr>').join('') +
+      '</tbody>';
+    block.appendChild(table);
+    main.appendChild(block);
+    return;
+  }
+
+  const familias = STATE.segmentData[activeTab] || {};
+  const famNames = Object.keys(familias);
+  if (!famNames.length) {
+    main.innerHTML = '<div class="empty-msg">Sin códigos negativos en este segmento. 🎉</div>';
+    return;
+  }
+  famNames.sort();
+  famNames.forEach(fam => {
+    const rows = familias[fam];
+    const block = document.createElement('div');
+    block.className = 'familia-block';
+    block.innerHTML = '<div class="familia-title">' + fam + ' (' + rows.length + ')</div>';
+    const table = document.createElement('table');
+    table.innerHTML = '<thead><tr><th>Código</th><th>Descripción</th><th>Stock negativo</th><th>Nro OC</th><th>Saldo a enviar</th><th>OC DIF</th></tr></thead><tbody>' +
+      rows.map(rowHTML).join('') + '</tbody>';
+    block.appendChild(table);
+    main.appendChild(block);
+  });
+}
+
+function updateKPIs() {
+  document.getElementById('kpiTotal').textContent = STATE.totalNegativos || 0;
+  const segsConNeg = SEGMENT_ORDER.filter(s => {
+    const f = STATE.segmentData[s] || {};
+    return Object.values(f).some(arr => arr.length > 0);
+  }).length;
+  document.getElementById('kpiSegmentos').textContent = segsConNeg;
+  document.getElementById('kpiNuevos').textContent = (STATE.newCodes || []).length;
+  document.getElementById('kpiSinCobertura').textContent = STATE.sinCobertura || 0;
+}
+
+loadAll();
+</script>
+</body>
+</html>
