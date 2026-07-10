@@ -226,6 +226,74 @@
   .tbl-new col.c-desc { width: 44%; }
   .tbl-new col.c-stock { width: 14%; }
   .tbl-new col.c-origen { width: 32%; }
+
+  #captureBtn {
+    background: rgba(255,255,255,0.15);
+    border: 1px solid rgba(255,255,255,0.4);
+    color: white;
+    padding: 5px 12px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 13px;
+  }
+  #captureBtn:hover { background: rgba(255,255,255,0.3); }
+  #captureBtn:disabled { opacity: 0.6; cursor: default; }
+  #captureMsg {
+    display: none;
+    font-size: 12px;
+    background: rgba(255,255,255,0.2);
+    padding: 4px 10px;
+    border-radius: 6px;
+  }
+
+  /* Estilo compacto usado SOLO al generar la imagen para WhatsApp,
+     para que se parezca al Excel (filas bajas, poco espacio entre bloques). */
+  .capture-render {
+    background: #ffffff;
+    padding: 14px;
+    width: 1180px;
+    font-family: Arial, Helvetica, sans-serif;
+    color: #111;
+  }
+  .capture-render .capture-title {
+    background: #f4b183;
+    color: #111;
+    font-weight: 700;
+    font-size: 18px;
+    padding: 6px 12px;
+    margin-bottom: 6px;
+    border-radius: 4px;
+  }
+  .capture-render .capture-updated {
+    font-size: 11px;
+    color: #555;
+    margin-bottom: 10px;
+  }
+  .capture-render main { padding: 0; }
+  .capture-render .sub-banner {
+    padding: 5px 10px;
+    font-size: 13px;
+    margin: 10px 0 4px 0;
+    border-radius: 4px;
+  }
+  .capture-render .familia-block {
+    border: 1px solid #ccc;
+    border-radius: 0;
+    margin-bottom: 3px;
+  }
+  .capture-render .familia-title {
+    padding: 4px 10px;
+    font-size: 12px;
+    background: #ffe699;
+  }
+  .capture-render table { font-size: 11px; }
+  .capture-render th, .capture-render td { padding: 3px 8px; }
+  .capture-render .totales-footer {
+    margin: 10px 0 0 0;
+    padding: 8px 14px;
+    gap: 20px;
+  }
+  .capture-render .totales-footer .num { font-size: 15px; }
 </style>
 </head>
 <body>
@@ -235,6 +303,8 @@
   <div class="sub">
     <span id="status">Cargando datos...</span>
     <button id="refreshBtn" onclick="loadAll()">↻ Actualizar ahora</button>
+    <button id="captureBtn" onclick="captureCurrentView()">📷 Copiar imagen (WhatsApp)</button>
+    <span id="captureMsg"></span>
   </div>
 </header>
 
@@ -262,6 +332,7 @@
 </main>
 <div class="totales-footer" id="totalesFooter" style="display:none;"></div>
 
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <script>
 const SHEET_KEY = "2PACX-1vR_JTyFWkCNN1TPZaXT8SpsxbULRsd2ayrR4K7wEtuAAcaAcvr3S9BzHwRdLx0IKl1cHNqM46HduJyj";
 const GIDS = {"STOCK_CENTRAL": 0, "OC_BARMAN": 2042553428, "OC_GRAFICA": 440867936, "OC_TUBOS": 815971331, "OC_VYMAT": 2015688495, "HISTORIAL": 248206215};
@@ -715,6 +786,86 @@ function updateKPIs() {
   document.getElementById('kpiSegmentos').textContent = segsConNeg;
   document.getElementById('kpiNuevos').textContent = (STATE.newCodes || []).length;
   document.getElementById('kpiSinCobertura').textContent = STATE.sinCobertura || 0;
+}
+
+
+function tituloVistaActual() {
+  if (activeTab === '__NEW__') return 'CÓDIGOS NUEVOS ENCONTRADOS';
+  let t = activeTab;
+  const subs = TAB_SUBS[activeTab] || [];
+  if (subs.length > 1 && activeSub !== 'ALL') t += ' — ' + activeSub;
+  return t;
+}
+
+async function captureCurrentView() {
+  const btn = document.getElementById('captureBtn');
+  const original = btn.textContent;
+  btn.disabled = true;
+  btn.textContent = 'Generando imagen...';
+  let wrapper = null;
+  try {
+    wrapper = document.createElement('div');
+    wrapper.className = 'capture-render';
+    wrapper.style.position = 'fixed';
+    wrapper.style.left = '-9999px';
+    wrapper.style.top = '0';
+    wrapper.style.zIndex = '-1';
+
+    const titleDiv = document.createElement('div');
+    titleDiv.className = 'capture-title';
+    titleDiv.textContent = tituloVistaActual();
+    wrapper.appendChild(titleDiv);
+
+    const updatedDiv = document.createElement('div');
+    updatedDiv.className = 'capture-updated';
+    updatedDiv.textContent = document.getElementById('status').textContent;
+    wrapper.appendChild(updatedDiv);
+
+    wrapper.appendChild(document.getElementById('main').cloneNode(true));
+    wrapper.appendChild(document.getElementById('totalesFooter').cloneNode(true));
+
+    document.body.appendChild(wrapper);
+    const canvas = await html2canvas(wrapper, { backgroundColor: '#ffffff', scale: 2 });
+    document.body.removeChild(wrapper);
+    wrapper = null;
+
+    canvas.toBlob(async (blob) => {
+      let copiado = false;
+      try {
+        if (navigator.clipboard && window.ClipboardItem) {
+          await navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })]);
+          copiado = true;
+        }
+      } catch (err) {
+        console.error('No se pudo copiar al portapapeles:', err);
+      }
+      if (copiado) {
+        mostrarAvisoCaptura('✅ Imagen copiada — pegala con Ctrl+V en WhatsApp.');
+      } else {
+        const link = document.createElement('a');
+        link.download = 'stock-negativo-' + activeTab.replace(/[^a-zA-Z0-9]+/g, '_') + '.png';
+        link.href = URL.createObjectURL(blob);
+        link.click();
+        mostrarAvisoCaptura('No se pudo copiar directo (navegador sin soporte) — se descargó la imagen.');
+      }
+      btn.disabled = false;
+      btn.textContent = original;
+    }, 'image/png');
+  } catch (err) {
+    console.error(err);
+    if (wrapper && wrapper.parentNode) document.body.removeChild(wrapper);
+    mostrarAvisoCaptura('Error al generar la imagen: ' + err.message);
+    btn.disabled = false;
+    btn.textContent = original;
+  }
+}
+
+function mostrarAvisoCaptura(msg) {
+  const el = document.getElementById('captureMsg');
+  el.textContent = msg;
+  el.style.display = 'inline-block';
+  clearTimeout(window.__captureMsgTimeout);
+  window.__captureMsgTimeout = setTimeout(() => { el.style.display = 'none'; }, 5000);
 }
 
 loadAll();
