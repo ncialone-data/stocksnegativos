@@ -101,8 +101,22 @@
     font-size: 14px;
     border-bottom: 1px solid var(--border);
   }
-  table { width: 100%; border-collapse: collapse; font-size: 13px; }
-  th, td { padding: 8px 12px; text-align: left; border-bottom: 1px solid #f0f0f0; }
+  /* Tablas: layout FIJO con anchos idénticos en todas las secciones, para que
+     las columnas queden alineadas verticalmente en todo el reporte. */
+  table {
+    width: 100%;
+    table-layout: fixed;
+    border-collapse: collapse;
+    font-size: 13px;
+  }
+  th, td {
+    padding: 8px 12px;
+    text-align: left;
+    border-bottom: 1px solid #f0f0f0;
+    overflow-wrap: break-word;
+    word-break: break-word;
+    vertical-align: top;
+  }
   th {
     background: #fbfbfb;
     color: var(--muted);
@@ -127,6 +141,18 @@
   #loadingBanner {
     padding: 40px; text-align: center; color: var(--muted);
   }
+  /* Anchos de columna fijos, iguales para TODAS las tablas principales (6 columnas) */
+  .tbl-main col.c-cod { width: 9%; }
+  .tbl-main col.c-desc { width: 33%; }
+  .tbl-main col.c-stock { width: 12%; }
+  .tbl-main col.c-oc { width: 16%; }
+  .tbl-main col.c-saldo { width: 15%; }
+  .tbl-main col.c-ocdif { width: 15%; }
+  /* Anchos de columna fijos, iguales para la tabla de códigos nuevos (4 columnas) */
+  .tbl-new col.c-cod { width: 10%; }
+  .tbl-new col.c-desc { width: 44%; }
+  .tbl-new col.c-stock { width: 14%; }
+  .tbl-new col.c-origen { width: 32%; }
 </style>
 </head>
 <body>
@@ -163,7 +189,6 @@ function csvUrl(gid) {
   return "https://docs.google.com/spreadsheets/d/e/" + SHEET_KEY + "/pub?gid=" + gid + "&single=true&output=csv";
 }
 
-// Parser CSV robusto (maneja comillas y comas dentro de campos)
 function parseCSV(text) {
   const rows = [];
   let row = [];
@@ -235,7 +260,6 @@ async function loadAll() {
       fetchCSV(GIDS.OC_VYMAT),
     ]);
 
-    // Mapa de OC: código -> { saldoEnviar, ords:Set, origenes:Set }
     const ocSets = { 'OC BARMAN': ocBarman, 'OC GRAFICA': ocGrafica, 'OC TUBOS': ocTubos, 'OC VYMAT': ocVymat };
     const ocMap = {};
     for (const [origen, rows] of Object.entries(ocSets)) {
@@ -249,7 +273,6 @@ async function loadAll() {
       }
     }
 
-    // Construir segmentos
     const segmentData = {};
     SEGMENT_ORDER.forEach(s => segmentData[s] = {});
     const newCodes = [];
@@ -286,7 +309,6 @@ async function loadAll() {
       }
     }
 
-    // ordenar cada familia por stock más negativo primero
     for (const seg of Object.keys(segmentData)) {
       for (const fam of Object.keys(segmentData[seg])) {
         segmentData[seg][fam].sort((a, b) => a.stockDisp - b.stockDisp);
@@ -334,6 +356,11 @@ function renderTabs() {
   tabsEl.appendChild(newBtn);
 }
 
+// <colgroup> con las mismas clases de ancho en TODAS las tablas principales,
+// así las columnas quedan perfectamente alineadas entre secciones.
+const COLGROUP_MAIN = '<colgroup><col class="c-cod"><col class="c-desc"><col class="c-stock"><col class="c-oc"><col class="c-saldo"><col class="c-ocdif"></colgroup>';
+const COLGROUP_NEW = '<colgroup><col class="c-cod"><col class="c-desc"><col class="c-stock"><col class="c-origen"></colgroup>';
+
 function rowHTML(r) {
   const ocDifClass = r.ocDif >= 0 ? 'ocdif-cubierto' : 'ocdif-falta';
   return '<tr>' +
@@ -360,7 +387,8 @@ function renderActive() {
     block.className = 'familia-block';
     block.innerHTML = '<div class="familia-title">Códigos con stock negativo que no están clasificados en ningún grupo (' + list.length + ')</div>';
     const table = document.createElement('table');
-    table.innerHTML = '<thead><tr><th>Código</th><th>Descripción</th><th>Stock negativo</th><th>Encontrado en</th></tr></thead><tbody>' +
+    table.className = 'tbl-new';
+    table.innerHTML = COLGROUP_NEW + '<thead><tr><th>Código</th><th>Descripción</th><th>Stock negativo</th><th>Encontrado en</th></tr></thead><tbody>' +
       list.map(r => '<tr><td>' + r.cod + '</td><td>' + r.desc + '</td><td class="neg">' + fmtNum(r.stockDisp) + '</td><td class="muted">' + r.origen + '</td></tr>').join('') +
       '</tbody>';
     block.appendChild(table);
@@ -381,7 +409,8 @@ function renderActive() {
     block.className = 'familia-block';
     block.innerHTML = '<div class="familia-title">' + fam + ' (' + rows.length + ')</div>';
     const table = document.createElement('table');
-    table.innerHTML = '<thead><tr><th>Código</th><th>Descripción</th><th>Stock negativo</th><th>Nro OC</th><th>Saldo a enviar</th><th>OC DIF</th></tr></thead><tbody>' +
+    table.className = 'tbl-main';
+    table.innerHTML = COLGROUP_MAIN + '<thead><tr><th>Código</th><th>Descripción</th><th>Stock negativo</th><th>Nro OC</th><th>Saldo a enviar</th><th>OC DIF</th></tr></thead><tbody>' +
       rows.map(rowHTML).join('') + '</tbody>';
     block.appendChild(table);
     main.appendChild(block);
