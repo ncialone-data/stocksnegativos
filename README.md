@@ -1,0 +1,1 @@
+# stocksnegativos
