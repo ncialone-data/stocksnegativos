@@ -575,13 +575,18 @@ function pintarDelta(el, hoy, ayer) {
 
 let activeTab = TAB_ORDER[0];
 let activeSub = 'ALL';
-let soloManteles = false; // filtro exclusivo de la solapa GRUPO L+MOSTAZA, para copiar imagen solo con Manteles
+let filtroFamilia = null; // null | 'MANTELES' | 'SERVILLETAS' — filtro exclusivo de la solapa GRUPO L+MOSTAZA, para copiar imagen segmentada
 const TAB_CON_FILTRO_MANTELES = 'GRUPO L+MOSTAZA';
-function familiaEsManteles(nombre) { return (nombre || '').trim().toUpperCase() === 'MANTELES'; }
-function filtrarSoloManteles(familias) {
-  if (!(activeTab === TAB_CON_FILTRO_MANTELES && soloManteles)) return familias;
+function familiaCoincideFiltro(nombre) {
+  const n = (nombre || '').trim().toUpperCase();
+  if (filtroFamilia === 'MANTELES') return n === 'MANTELES';
+  if (filtroFamilia === 'SERVILLETAS') return n.startsWith('SERVILLETAS');
+  return true;
+}
+function filtrarPorFamilia(familias) {
+  if (!(activeTab === TAB_CON_FILTRO_MANTELES && filtroFamilia)) return familias;
   const out = {};
-  Object.keys(familias).forEach(k => { if (familiaEsManteles(k)) out[k] = familias[k]; });
+  Object.keys(familias).forEach(k => { if (familiaCoincideFiltro(k)) out[k] = familias[k]; });
   return out;
 }
 
@@ -609,7 +614,7 @@ function renderPrimaryTabs() {
     btn.onclick = () => {
       activeTab = tab;
       activeSub = 'ALL';
-      soloManteles = false;
+      filtroFamilia = null;
       renderPrimaryTabs(); renderSecondaryTabs(); renderActive(); renderTotalesFooter();
     };
     el.appendChild(btn);
@@ -618,7 +623,7 @@ function renderPrimaryTabs() {
   const newCount = STATE.newCodes ? STATE.newCodes.length : 0;
   newBtn.className = 'tab-primary new-tab' + (activeTab === '__NEW__' ? ' active' : '');
   newBtn.innerHTML = '⚠ CÓDIGOS NUEVOS ENCONTRADOS <span class="count">' + newCount + '</span>';
-  newBtn.onclick = () => { activeTab = '__NEW__'; soloManteles = false; renderPrimaryTabs(); renderSecondaryTabs(); renderActive(); renderTotalesFooter(); };
+  newBtn.onclick = () => { activeTab = '__NEW__'; filtroFamilia = null; renderPrimaryTabs(); renderSecondaryTabs(); renderActive(); renderTotalesFooter(); };
   el.appendChild(newBtn);
 }
 
@@ -651,13 +656,22 @@ function renderSecondaryTabs() {
 
   if (activeTab === TAB_CON_FILTRO_MANTELES) {
     const mantelesBtn = document.createElement('button');
-    mantelesBtn.className = 'tab-secondary filtro-familia' + (soloManteles ? ' active' : '');
-    mantelesBtn.textContent = soloManteles ? '🧺 Solo Manteles (clic para quitar filtro)' : '🧺 Filtrar: Solo Manteles';
+    mantelesBtn.className = 'tab-secondary filtro-familia' + (filtroFamilia === 'MANTELES' ? ' active' : '');
+    mantelesBtn.textContent = filtroFamilia === 'MANTELES' ? '🧺 Solo Manteles (clic para quitar filtro)' : '🧺 Filtrar: Solo Manteles';
     mantelesBtn.onclick = () => {
-      soloManteles = !soloManteles;
+      filtroFamilia = (filtroFamilia === 'MANTELES') ? null : 'MANTELES';
       renderSecondaryTabs(); renderActive(); renderTotalesFooter();
     };
     el.appendChild(mantelesBtn);
+
+    const servilletasBtn = document.createElement('button');
+    servilletasBtn.className = 'tab-secondary filtro-familia' + (filtroFamilia === 'SERVILLETAS' ? ' active' : '');
+    servilletasBtn.textContent = filtroFamilia === 'SERVILLETAS' ? '🧻 Solo Servilletas (clic para quitar filtro)' : '🧻 Filtrar: Solo Servilletas';
+    servilletasBtn.onclick = () => {
+      filtroFamilia = (filtroFamilia === 'SERVILLETAS') ? null : 'SERVILLETAS';
+      renderSecondaryTabs(); renderActive(); renderTotalesFooter();
+    };
+    el.appendChild(servilletasBtn);
   }
 }
 
@@ -726,7 +740,7 @@ function renderActive() {
   const tabData = STATE.data[activeTab] || {};
 
   if (subs.length <= 1) {
-    const familias = filtrarSoloManteles(tabData[subs[0]] || {});
+    const familias = filtrarPorFamilia(tabData[subs[0]] || {});
     if (!Object.keys(familias).length) {
       main.innerHTML = '<div class="empty-msg">Sin códigos negativos en este segmento. 🎉</div>';
       return;
@@ -738,7 +752,7 @@ function renderActive() {
   if (activeSub === 'ALL') {
     let anyContent = false;
     subs.forEach(sub => {
-      const familias = filtrarSoloManteles(tabData[sub] || {});
+      const familias = filtrarPorFamilia(tabData[sub] || {});
       const count = Object.values(familias).reduce((acc, arr) => acc + arr.length, 0);
       if (count === 0) return;
       anyContent = true;
@@ -752,7 +766,7 @@ function renderActive() {
       main.innerHTML = '<div class="empty-msg">Sin códigos negativos en este segmento. 🎉</div>';
     }
   } else {
-    const familias = filtrarSoloManteles(tabData[activeSub] || {});
+    const familias = filtrarPorFamilia(tabData[activeSub] || {});
     if (!Object.keys(familias).length) {
       main.innerHTML = '<div class="empty-msg">Sin códigos negativos en ' + activeSub + '. 🎉</div>';
       return;
@@ -796,7 +810,7 @@ function renderTotalesFooter() {
 
   let count = 0, suma = 0;
   subsToSum.forEach(sub => {
-    const familias = filtrarSoloManteles(tabData[sub] || {});
+    const familias = filtrarPorFamilia(tabData[sub] || {});
     Object.values(familias).forEach(arr => {
       arr.forEach(r => { count++; suma += r.stockDisp; });
     });
@@ -842,7 +856,7 @@ function tituloVistaActual() {
   let t = activeTab;
   const subs = TAB_SUBS[activeTab] || [];
   if (subs.length > 1 && activeSub !== 'ALL') t += ' — ' + activeSub;
-  if (activeTab === TAB_CON_FILTRO_MANTELES && soloManteles) t += ' — Solo Manteles';
+  if (activeTab === TAB_CON_FILTRO_MANTELES && filtroFamilia) t += ' — Solo ' + (filtroFamilia === 'MANTELES' ? 'Manteles' : 'Servilletas');
   return t;
 }
 
