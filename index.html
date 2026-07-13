@@ -622,7 +622,7 @@ function renderPrimaryTabs() {
   const newBtn = document.createElement('button');
   const newCount = STATE.newCodes ? STATE.newCodes.length : 0;
   newBtn.className = 'tab-primary new-tab' + (activeTab === '__NEW__' ? ' active' : '');
-  newBtn.innerHTML = '⚠ CÓDIGOS NUEVOS ENCONTRADOS <span class="count">' + newCount + '</span>';
+  newBtn.innerHTML = '⚠ CÓDIGOS SIN CLASIFICAR <span class="count">' + newCount + '</span>';
   newBtn.onclick = () => { activeTab = '__NEW__'; filtroFamilia = null; renderPrimaryTabs(); renderSecondaryTabs(); renderActive(); renderTotalesFooter(); };
   el.appendChild(newBtn);
 }
@@ -852,7 +852,7 @@ function updateKPIs() {
 
 
 function tituloVistaActual() {
-  if (activeTab === '__NEW__') return 'CÓDIGOS NUEVOS ENCONTRADOS';
+  if (activeTab === '__NEW__') return 'CÓDIGOS SIN CLASIFICAR';
   let t = activeTab;
   const subs = TAB_SUBS[activeTab] || [];
   if (subs.length > 1 && activeSub !== 'ALL') t += ' — ' + activeSub;
