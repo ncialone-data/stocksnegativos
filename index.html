@@ -201,14 +201,16 @@
     background: #eef2ff;
     border: 1px solid #c7d2fe;
     border-radius: 10px;
-    padding: 14px 20px;
-    display: flex;
-    gap: 32px;
-    flex-wrap: wrap;
-    align-items: center;
+    padding: 14px 0;
     font-size: 13px;
   }
+  /* fila interna alineada a las mismas proporciones de columnas que las tablas,
+     para que "Suma total de negativos" quede exactamente debajo de "Stock negativo" */
+  .totales-footer .tf-row { display: flex; align-items: center; width: 100%; }
+  .totales-footer .tf-cell { padding: 0 12px; }
+  .totales-footer .tf-center { text-align: center; }
   .totales-footer .item .num { font-size: 20px; font-weight: 700; color: #333; }
+  .totales-footer .item .num.neg { color: var(--red); }
   .totales-footer .item .lbl { color: var(--muted); font-size: 11px; text-transform: uppercase; }
   .totales-footer .evo { display:flex; align-items:center; gap:8px; margin-left:auto; }
   .totales-footer .evo .delta { font-size: 12px; font-weight:700; padding:3px 10px; border-radius:12px; }
@@ -290,8 +292,7 @@
   .capture-render th, .capture-render td { padding: 3px 8px; }
   .capture-render .totales-footer {
     margin: 10px 0 0 0;
-    padding: 8px 14px;
-    gap: 20px;
+    padding: 8px 0;
   }
   .capture-render .totales-footer .num { font-size: 15px; }
 </style>
@@ -741,13 +742,16 @@ function renderTotalesFooter() {
         const delta = suma - ayer;
         const cls = delta >= 0 ? 'mejor' : 'peor';
         const txt = delta >= 0 ? '▲ mejoró ' + fmtNum(Math.abs(delta)) : '▼ empeoró ' + fmtNum(Math.abs(delta));
-        evoHtml = '<div class="evo"><span class="lbl2">vs. último registro (' + (prevRow['FECHA']||'—') + '): ' + fmtNum(ayer) + '</span><span class="delta ' + cls + '">' + txt + '</span></div>';
+        evoHtml = '<div class="evo"><span class="delta ' + cls + '">' + txt + '</span><span class="lbl2">vs. último registro (' + (prevRow['FECHA']||'—') + '): ' + fmtNum(ayer) + '</span></div>';
       }
     }
     el.innerHTML =
-      '<div class="item"><div class="num">' + list.length + '</div><div class="lbl">Códigos sin clasificar</div></div>' +
-      '<div class="item"><div class="num neg">' + fmtNum(suma) + '</div><div class="lbl">Suma negativos sin clasificar</div></div>' +
-      evoHtml;
+      '<div class="tf-row">' +
+        '<div class="tf-cell" style="flex:0 0 10%"></div>' +
+        '<div class="tf-cell" style="flex:0 0 44%"><div class="item"><div class="num">' + list.length + '</div><div class="lbl">Códigos sin clasificar</div></div></div>' +
+        '<div class="tf-cell tf-center" style="flex:0 0 14%"><div class="item"><div class="num neg">' + fmtNum(suma) + '</div><div class="lbl">Suma negativos sin clasificar</div></div></div>' +
+        '<div class="tf-cell" style="flex:0 0 32%; display:flex; align-items:center;">' + evoHtml + '</div>' +
+      '</div>';
     return;
   }
 
@@ -776,14 +780,17 @@ function renderTotalesFooter() {
       const delta = hoy - ayer;
       const cls = delta >= 0 ? 'mejor' : 'peor';
       const txt = delta >= 0 ? '▲ mejoró ' + fmtNum(Math.abs(delta)) : '▼ empeoró ' + fmtNum(Math.abs(delta));
-      evoHtml = '<div class="evo"><span class="lbl2">' + activeTab + ' vs. último registro (' + (prevRow['FECHA']||'—') + '): ' + fmtNum(ayer) + '</span><span class="delta ' + cls + '">' + txt + '</span></div>';
+      evoHtml = '<div class="evo"><span class="delta ' + cls + '">' + txt + '</span><span class="lbl2">' + activeTab + ' vs. último registro (' + (prevRow['FECHA']||'—') + '): ' + fmtNum(ayer) + '</span></div>';
     }
   }
 
   el.innerHTML =
-    '<div class="item"><div class="num">' + count + '</div><div class="lbl">Códigos negativos en esta vista</div></div>' +
-    '<div class="item"><div class="num neg">' + fmtNum(suma) + '</div><div class="lbl">Suma total de negativos en esta vista</div></div>' +
-    evoHtml;
+    '<div class="tf-row">' +
+      '<div class="tf-cell" style="flex:0 0 9%"></div>' +
+      '<div class="tf-cell" style="flex:0 0 33%"><div class="item"><div class="num">' + count + '</div><div class="lbl">Códigos negativos en esta vista</div></div></div>' +
+      '<div class="tf-cell tf-center" style="flex:0 0 12%"><div class="item"><div class="num neg">' + fmtNum(suma) + '</div><div class="lbl">Suma total de negativos</div></div></div>' +
+      '<div class="tf-cell" style="flex:0 0 46%; display:flex; align-items:center;">' + evoHtml + '</div>' +
+    '</div>';
 }
 
 function updateKPIs() {
