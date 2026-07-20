@@ -42,37 +42,6 @@
   }
   #refreshBtn:hover { background: rgba(255,255,255,0.3); }
   #status { font-size: 13px; }
-  .kpis {
-    display: flex; gap: 12px; flex-wrap: wrap;
-    padding: 16px 24px 0 24px;
-  }
-  .kpi {
-    background: var(--card);
-    border: 1px solid var(--border);
-    border-radius: 10px;
-    padding: 12px 18px;
-    min-width: 150px;
-    box-shadow: 0 1px 2px rgba(0,0,0,0.04);
-  }
-  .kpi .num { font-size: 26px; font-weight: 700; color: var(--red); }
-  .kpi .label { font-size: 12px; color: var(--muted); margin-top: 2px; }
-
-  .kpi-evo {
-    background: var(--card);
-    border: 1px solid var(--border);
-    border-radius: 10px;
-    padding: 12px 18px;
-    min-width: 230px;
-    box-shadow: 0 1px 2px rgba(0,0,0,0.04);
-  }
-  .kpi-evo .label { font-size: 12px; color: var(--muted); margin-bottom: 4px; }
-  .kpi-evo .row { display:flex; align-items:baseline; gap:10px; }
-  .kpi-evo .num { font-size: 22px; font-weight: 700; }
-  .kpi-evo .delta { font-size: 13px; font-weight: 700; padding: 2px 8px; border-radius: 12px; }
-  .kpi-evo .delta.mejor { color: var(--green); background: #eaf6ec; }
-  .kpi-evo .delta.peor { color: var(--red); background: #fdeaea; }
-  .kpi-evo .sub { font-size: 11px; color: var(--muted); margin-top: 2px; }
-
   .tabs-primary {
     display: flex; flex-wrap: wrap; gap: 4px;
     padding: 16px 24px 0 24px;
@@ -233,14 +202,15 @@
 
   .tbl-main col.c-cod { width: 9%; }
   .tbl-main col.c-desc { width: 33%; }
+  .tbl-main col.c-pend { width: 11%; }
   .tbl-main col.c-stock { width: 12%; }
-  .tbl-main col.c-oc { width: 16%; }
-  .tbl-main col.c-saldo { width: 15%; }
-  .tbl-main col.c-ocdif { width: 15%; }
+  .tbl-main col.c-oc { width: 18%; }
+  .tbl-main col.c-ocdif { width: 17%; }
   .tbl-new col.c-cod { width: 10%; }
-  .tbl-new col.c-desc { width: 44%; }
+  .tbl-new col.c-desc { width: 34%; }
+  .tbl-new col.c-pend { width: 12%; }
   .tbl-new col.c-stock { width: 14%; }
-  .tbl-new col.c-origen { width: 32%; }
+  .tbl-new col.c-origen { width: 30%; }
 
   #captureBtn {
     background: rgba(255,255,255,0.15);
@@ -261,12 +231,47 @@
     border-radius: 6px;
   }
 
-  /* Estilo compacto usado SOLO al generar la imagen para WhatsApp,
-     para que se parezca al Excel (filas bajas, poco espacio entre bloques). */
+  /* Tabla estilo Excel compacto, usada SOLO por el botón "Copiar imagen (WhatsApp)":
+     FAMILIA como columna angosta (el texto solo aparece en la primera fila de cada
+     familia, igual que en el Excel real), anchos autoajustados por texto vía canvas,
+     y los mismos colores de formato condicional del Excel original. Esta tabla vive
+     siempre oculta en #mainCaptura/#footerCaptura y nunca se muestra en la vista en vivo. */
+  .xtable { width: auto; margin: 0 auto 14px auto; font-size: 11px; }
+  .xtable th, .xtable td {
+    padding: 2px 5px;
+    line-height: 1.25;
+    border-bottom: 1px solid #e3e3e3;
+    overflow-wrap: break-word;
+    word-break: break-word;
+    vertical-align: middle;
+  }
+  .xtable thead th {
+    background: #c6deb5; color: #222; font-weight: 700; font-size: 10px;
+    text-transform: none; letter-spacing: normal; border-bottom: 1px solid #999;
+  }
+  .xtable thead th.xtitulo { font-size: 14px; font-weight: 700; text-align: left; }
+  .xtable td.xfam { font-weight: 700; }
+  /* Barra de separación entre familias, para que se note claramente donde
+     termina una familia y empieza la siguiente (pedido explícito del usuario). */
+  .xtable tbody tr.xgrupo-nuevo td { border-top: 2px solid #444; }
+  .xtable td:nth-child(2) { font-weight: 700; }
+  .xc { text-align: center; }
+  .xnum { text-align: right; }
+  .xfalta { background: #ffc7ce; color: #9c0006; font-weight: 600; text-align: center; }
+  .xbien { background: #c6efce; color: #006100; font-weight: 600; }
+  .xmal { background: #ffeb9c; color: #9c6500; font-weight: 600; }
+  #captureStage table.tbl-new { font-size: 11px; }
+  #captureStage table.tbl-new th, #captureStage table.tbl-new td { padding: 3px 8px; }
+  #captureStage .familia-block { border: 1px solid #ccc; border-radius: 0; margin-bottom: 3px; }
+  #captureStage .familia-title { padding: 4px 10px; font-size: 12px; background: #ffe699; }
+  #captureStage .totales-footer { margin: 0; padding: 8px 0; }
+
+  /* Estilo del "lienzo" que arma html2canvas al generar la imagen para WhatsApp
+     (título + tabla estilo Excel + pie de totales), a partir del contenido oculto
+     en #mainCaptura/#footerCaptura. */
   .capture-render {
     background: #ffffff;
     padding: 14px;
-    width: 1180px;
     font-family: Arial, Helvetica, sans-serif;
     color: #111;
   }
@@ -283,29 +288,6 @@
     font-size: 11px;
     color: #555;
     margin-bottom: 10px;
-  }
-  .capture-render main { padding: 0; }
-  .capture-render .sub-banner {
-    padding: 5px 10px;
-    font-size: 13px;
-    margin: 10px 0 4px 0;
-    border-radius: 4px;
-  }
-  .capture-render .familia-block {
-    border: 1px solid #ccc;
-    border-radius: 0;
-    margin-bottom: 3px;
-  }
-  .capture-render .familia-title {
-    padding: 4px 10px;
-    font-size: 12px;
-    background: #ffe699;
-  }
-  .capture-render table { font-size: 11px; }
-  .capture-render th, .capture-render td { padding: 3px 8px; }
-  .capture-render .totales-footer {
-    margin: 10px 0 0 0;
-    padding: 8px 0;
   }
   .capture-render .totales-footer .num { font-size: 15px; }
 </style>
@@ -324,27 +306,16 @@
 
 <div id="errorBanner"></div>
 
-<div class="kpis" id="kpis" style="display:none;">
-  <div class="kpi"><div class="num" id="kpiTotal">0</div><div class="label">Códigos negativos</div></div>
-  <div class="kpi"><div class="num" id="kpiSegmentos">0</div><div class="label">Segmentos con negativos</div></div>
-  <div class="kpi"><div class="num" id="kpiNuevos">0</div><div class="label">Códigos sin clasificar</div></div>
-  <div class="kpi"><div class="num" id="kpiSinCobertura">0</div><div class="label">Sin OC que cubra el faltante</div></div>
-  <div class="kpi-evo" id="kpiEvo">
-    <div class="label">Evolución suma de negativos TOTAL (hoy vs. último registro)</div>
-    <div class="row">
-      <div class="num" id="evoHoy">—</div>
-      <div class="delta" id="evoDelta" style="display:none;"></div>
-    </div>
-    <div class="sub" id="evoSub">Cargando historial...</div>
-  </div>
-</div>
-
 <div class="tabs-primary" id="tabsPrimary"></div>
 <div class="tabs-secondary" id="tabsSecondary" style="display:none;"></div>
 <main id="main">
   <div id="loadingBanner">Cargando datos desde Google Sheets...</div>
 </main>
 <div class="totales-footer" id="totalesFooter" style="display:none;"></div>
+<div id="captureStage" style="position:absolute; left:-9999px; top:0;">
+  <div id="mainCaptura"></div>
+  <div class="totales-footer" id="footerCaptura"></div>
+</div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <script>
@@ -463,13 +434,14 @@ async function loadAll() {
       totalNegativos++;
       sumaNegativos += stockDisp;
       const desc = r['MATERIA PRIMA'] || '';
+      const pendiente = parseNum(r['PEDIDO']);
       const ocInfo = ocMap[cod];
       const saldoEnviar = ocInfo ? ocInfo.saldoEnviar : 0;
       const ords = ocInfo ? Array.from(ocInfo.ords).join(', ') : '';
       const ocDif = stockDisp + saldoEnviar;
       if (ocDif < 0) sinCobertura++;
 
-      const rowData = { cod, desc, stockDisp, ords, saldoEnviar, ocDif };
+      const rowData = { cod, desc, pendiente, stockDisp, ords, saldoEnviar, ocDif };
 
       const clases = CLASSIFICATION[cod];
       if (!clases || clases.length === 0) {
@@ -501,13 +473,11 @@ async function loadAll() {
     renderPrimaryTabs();
     renderSecondaryTabs();
     renderActive();
-    updateKPIs();
     await loadHistorial();
     renderTotalesFooter();
 
     const now = new Date().toLocaleString('es-AR');
     document.getElementById('status').textContent = 'Actualizado: ' + now;
-    document.getElementById('kpis').style.display = 'flex';
   } catch (err) {
     console.error(err);
     document.getElementById('errorBanner').textContent = 'No se pudo actualizar la información: ' + err.message + '. Verificá la conexión o que el Google Sheets siga publicado.';
@@ -519,14 +489,9 @@ async function loadAll() {
 }
 
 async function loadHistorial() {
-  const evoHoy = document.getElementById('evoHoy');
-  const evoDelta = document.getElementById('evoDelta');
-  const evoSub = document.getElementById('evoSub');
-  evoHoy.textContent = fmtNum(STATE.sumaNegativos);
-
+  // Se conserva la carga de HISTORIAL_ROWS: la usa la evolución por segmento
+  // que se muestra al pie de cada solapa (renderTotalesFooter).
   if (!GIDS.HISTORIAL) {
-    evoDelta.style.display = 'none';
-    evoSub.textContent = 'Conectá la pestaña HISTORIAL para ver esta comparación.';
     HISTORIAL_ROWS = null;
     return;
   }
@@ -537,19 +502,7 @@ async function loadHistorial() {
     console.error(err);
     HISTORIAL_ROWS = null;
     HISTORIAL_ERROR = err.message;
-    evoSub.textContent = 'No se pudo leer HISTORIAL.';
-    return;
   }
-  if (!HISTORIAL_ROWS.length) { evoSub.textContent = 'Todavía no hay registros en HISTORIAL.'; return; }
-
-  const prevRow = findPrevRow(HISTORIAL_ROWS);
-  if (!prevRow) { evoSub.textContent = 'Todavía no hay un registro anterior a hoy para comparar.'; return; }
-
-  const colName = HISTORIAL_ROWS[0].hasOwnProperty('TOTAL') ? 'TOTAL' : 'TOTAL NEGATIVO';
-  const ayer = parseNum(prevRow[colName]);
-  const hoy = STATE.sumaNegativos;
-  pintarDelta(evoDelta, hoy, ayer);
-  evoSub.textContent = 'Último registro (' + (prevRow['FECHA'] || '—') + '): ' + fmtNum(ayer);
 }
 
 function findPrevRow(rows) {
@@ -559,18 +512,6 @@ function findPrevRow(rows) {
     if (fecha && fecha.slice(0,10) !== todayStr) return rows[i];
   }
   return null;
-}
-
-function pintarDelta(el, hoy, ayer) {
-  const delta = hoy - ayer; // positivo = menos negativo que ayer = mejoró
-  el.style.display = 'inline-block';
-  if (delta >= 0) {
-    el.className = 'delta mejor';
-    el.textContent = '▲ mejoró ' + fmtNum(Math.abs(delta));
-  } else {
-    el.className = 'delta peor';
-    el.textContent = '▼ empeoró ' + fmtNum(Math.abs(delta));
-  }
 }
 
 let activeTab = TAB_ORDER[0];
@@ -675,17 +616,17 @@ function renderSecondaryTabs() {
   }
 }
 
-const COLGROUP_MAIN = '<colgroup><col class="c-cod"><col class="c-desc"><col class="c-stock"><col class="c-oc"><col class="c-saldo"><col class="c-ocdif"></colgroup>';
-const COLGROUP_NEW = '<colgroup><col class="c-cod"><col class="c-desc"><col class="c-stock"><col class="c-origen"></colgroup>';
+const COLGROUP_MAIN = '<colgroup><col class="c-cod"><col class="c-desc"><col class="c-pend"><col class="c-stock"><col class="c-oc"><col class="c-ocdif"></colgroup>';
+const COLGROUP_NEW = '<colgroup><col class="c-cod"><col class="c-desc"><col class="c-pend"><col class="c-stock"><col class="c-origen"></colgroup>';
 
 function rowHTML(r) {
   const ocDifClass = r.ocDif >= 0 ? 'ocdif-cubierto' : 'ocdif-falta';
   return '<tr>' +
     '<td>' + r.cod + '</td>' +
     '<td>' + r.desc + '</td>' +
+    '<td>' + (r.pendiente ? fmtNum(r.pendiente) : '—') + '</td>' +
     '<td class="neg">' + fmtNum(r.stockDisp) + '</td>' +
     '<td class="muted">' + (r.ords || '—') + '</td>' +
-    '<td>' + (r.saldoEnviar ? fmtNum(r.saldoEnviar) : '—') + '</td>' +
     '<td class="' + ocDifClass + '">' + fmtNum(r.ocDif) + '</td>' +
     '</tr>';
 }
@@ -706,14 +647,14 @@ function renderFamiliaBlocks(container, familias) {
     block.innerHTML = '<div class="familia-title">' + fam + '</div>';
     const table = document.createElement('table');
     table.className = 'tbl-main';
-    table.innerHTML = COLGROUP_MAIN + '<thead><tr><th>Código</th><th>Descripción</th><th>Stock negativo</th><th>Nro OC</th><th>Saldo a enviar</th><th>OC DIF</th></tr></thead><tbody>' +
+    table.innerHTML = COLGROUP_MAIN + '<thead><tr><th>Código</th><th>Descripción</th><th>Pendientes</th><th>Stock negativo</th><th>Nro OC</th><th>OC DIF</th></tr></thead><tbody>' +
       rows.map(rowHTML).join('') + '</tbody>';
     block.appendChild(table);
     container.appendChild(block);
   });
 }
 
-function renderActive() {
+function renderActiveInner() {
   const main = document.getElementById('main');
   main.innerHTML = '';
 
@@ -728,8 +669,8 @@ function renderActive() {
     block.innerHTML = '<div class="familia-title">Códigos con stock negativo que no están clasificados en ningún grupo</div>';
     const table = document.createElement('table');
     table.className = 'tbl-new';
-    table.innerHTML = COLGROUP_NEW + '<thead><tr><th>Código</th><th>Descripción</th><th>Stock negativo</th><th>Encontrado en</th></tr></thead><tbody>' +
-      list.map(r => '<tr><td>' + r.cod + '</td><td>' + r.desc + '</td><td class="neg">' + fmtNum(r.stockDisp) + '</td><td class="muted">' + r.origen + '</td></tr>').join('') +
+    table.innerHTML = COLGROUP_NEW + '<thead><tr><th>Código</th><th>Descripción</th><th>Pendientes</th><th>Stock negativo</th><th>Encontrado en</th></tr></thead><tbody>' +
+      list.map(r => '<tr><td>' + r.cod + '</td><td>' + r.desc + '</td><td>' + (r.pendiente ? fmtNum(r.pendiente) : '—') + '</td><td class="neg">' + fmtNum(r.stockDisp) + '</td><td class="muted">' + r.origen + '</td></tr>').join('') +
       '</tbody>';
     block.appendChild(table);
     main.appendChild(block);
@@ -775,13 +716,181 @@ function renderActive() {
   }
 }
 
+
+// --- A partir de aca: funciones EXCLUSIVAS para armar la tabla estilo Excel que se usa
+// SOLO al generar la imagen para WhatsApp (boton "Copiar imagen"). Viven siempre ocultas
+// en #mainCaptura/#footerCaptura y nunca se muestran en la vista en vivo del dashboard,
+// que sigue usando renderActiveInner()/renderFamiliaBlocks() (estilo v17) de arriba. ---
+
+function xrowHTML(item) {
+  const r = item.r;
+  const tieneOC = !!(r.ords && r.ords.trim());
+  const ocCell = tieneOC
+    ? '<td class="xc">' + r.ords + '</td>'
+    : '<td class="xfalta">FALTA</td>';
+  const ocDifCell = tieneOC
+    ? '<td class="xc ' + (r.ocDif >= 0 ? 'xbien' : 'xmal') + '">' + fmtNum(r.ocDif) + '</td>'
+    : '<td class="xfalta">FALTA</td>';
+  const trClass = item.nuevoGrupo ? ' class="xgrupo-nuevo"' : '';
+  return '<tr' + trClass + '>' +
+    '<td class="xfam">' + (item.fam ? item.fam.toUpperCase() : '') + '</td>' +
+    '<td>' + r.cod + '</td>' +
+    '<td>' + r.desc + '</td>' +
+    '<td class="xnum">' + fmtNum(r.pendiente) + '</td>' +
+    '<td class="xnum neg">' + fmtNum(r.stockDisp) + '</td>' +
+    ocCell +
+    ocDifCell +
+    '</tr>';
+}
+
+function filasConFamilia(familias) {
+  const famNames = ordenFamilias(Object.keys(familias));
+  const filas = [];
+  famNames.forEach((fam, famIdx) => {
+    familias[fam].forEach((r, idx) => filas.push({ r, fam: idx === 0 ? fam : '', nuevoGrupo: idx === 0 && famIdx > 0 }));
+  });
+  return filas;
+}
+
+// Autoajuste de columnas (equivalente a "Autoajustar ancho de columna" de Excel): mide el
+// ancho real del texto con canvas y calcula UN solo set de anchos por vista, para que varias
+// sub-tablas apiladas (como en "TODOS") queden perfectamente alineadas entre si.
+let _medirCtx = null;
+function medirTextoPx(texto, font) {
+  if (!_medirCtx) _medirCtx = document.createElement('canvas').getContext('2d');
+  _medirCtx.font = font;
+  return _medirCtx.measureText(String(texto == null ? '' : texto)).width;
+}
+const XFONT_HEADER = '700 10px Arial, Helvetica, sans-serif';
+const XFONT_TITLE  = '700 14px Arial, Helvetica, sans-serif';
+const XFONT_BODY   = '400 11px Arial, Helvetica, sans-serif';
+const XFONT_BODY_B = '700 11px Arial, Helvetica, sans-serif';
+const XFONT_FALTA  = '600 11px Arial, Helvetica, sans-serif';
+const XCELL_PAD = 14;
+
+function calcularAnchosXTable(secciones) {
+  let wFam = medirTextoPx('FAMILIA', XFONT_HEADER);
+  let wCod = medirTextoPx('CODIGO', XFONT_HEADER);
+  let wDesc = 0;
+  let wPend = medirTextoPx('PENDIENTES', XFONT_HEADER);
+  let wStock = Math.max(medirTextoPx('STOCK', XFONT_HEADER), medirTextoPx('NEGATIVO', XFONT_HEADER));
+  let wOc = medirTextoPx('NRO OC', XFONT_HEADER);
+  let wOcDif = medirTextoPx('OC DIF', XFONT_HEADER);
+
+  secciones.forEach(sec => {
+    wDesc = Math.max(wDesc, medirTextoPx(sec.titulo, XFONT_TITLE));
+    filasConFamilia(sec.familias).forEach(item => {
+      const r = item.r;
+      if (item.fam) wFam = Math.max(wFam, medirTextoPx(item.fam.toUpperCase(), XFONT_BODY_B));
+      wCod = Math.max(wCod, medirTextoPx(r.cod, XFONT_BODY_B));
+      wDesc = Math.max(wDesc, medirTextoPx(r.desc, XFONT_BODY));
+      wPend = Math.max(wPend, medirTextoPx(fmtNum(r.pendiente), XFONT_BODY));
+      wStock = Math.max(wStock, medirTextoPx(fmtNum(r.stockDisp), XFONT_BODY));
+      const tieneOC = !!(r.ords && r.ords.trim());
+      wOc = Math.max(wOc, medirTextoPx(tieneOC ? r.ords : 'FALTA', tieneOC ? XFONT_BODY : XFONT_FALTA));
+      wOcDif = Math.max(wOcDif, medirTextoPx(tieneOC ? fmtNum(r.ocDif) : 'FALTA', tieneOC ? XFONT_BODY : XFONT_FALTA));
+    });
+  });
+
+  return {
+    fam: Math.ceil(wFam + XCELL_PAD),
+    cod: Math.ceil(wCod + XCELL_PAD),
+    desc: Math.ceil(wDesc + XCELL_PAD),
+    pend: Math.ceil(wPend + XCELL_PAD),
+    stock: Math.ceil(wStock + XCELL_PAD),
+    oc: Math.ceil(wOc + XCELL_PAD),
+    ocdif: Math.ceil(wOcDif + XCELL_PAD),
+  };
+}
+
+function colgroupXTable(a) {
+  return '<colgroup>' +
+    '<col style="width:' + a.fam + 'px">' +
+    '<col style="width:' + a.cod + 'px">' +
+    '<col style="width:' + a.desc + 'px">' +
+    '<col style="width:' + a.pend + 'px">' +
+    '<col style="width:' + a.stock + 'px">' +
+    '<col style="width:' + a.oc + 'px">' +
+    '<col style="width:' + a.ocdif + 'px">' +
+    '</colgroup>';
+}
+
+function renderExcelTable(container, familias, titulo, anchos) {
+  const filas = filasConFamilia(familias);
+  if (!filas.length) return;
+  const table = document.createElement('table');
+  table.className = 'xtable';
+  table.innerHTML = colgroupXTable(anchos) +
+    '<thead><tr><th>Familia</th><th>Codigo</th><th class="xtitulo">' + titulo + '</th><th class="xnum">Pendientes</th><th class="xnum">Stock<br>negativo</th><th class="xc">Nro OC</th><th class="xc">OC DIF</th></tr></thead>' +
+    '<tbody>' + filas.map(xrowHTML).join('') + '</tbody>';
+  container.appendChild(table);
+}
+
+// Arma, en el arbol oculto #mainCaptura, la MISMA vista que se esta viendo en vivo
+// (misma solapa/sub-cliente/filtro), pero con el formato compacto estilo Excel.
+function renderVistaCapturaExcel() {
+  const main = document.getElementById('mainCaptura');
+  if (!main) return;
+  main.innerHTML = '';
+
+  if (activeTab === '__NEW__') {
+    const list = STATE.newCodes || [];
+    if (!list.length) return;
+    const block = document.createElement('div');
+    block.className = 'familia-block';
+    block.innerHTML = '<div class="familia-title">Códigos con stock negativo que no están clasificados en ningún grupo</div>';
+    const table = document.createElement('table');
+    table.className = 'tbl-new';
+    table.innerHTML = COLGROUP_NEW + '<thead><tr><th>Código</th><th>Descripción</th><th>Pendientes</th><th>Stock negativo</th><th>Encontrado en</th></tr></thead><tbody>' +
+      list.map(r => '<tr><td>' + r.cod + '</td><td>' + r.desc + '</td><td>' + (r.pendiente ? fmtNum(r.pendiente) : '—') + '</td><td class="neg">' + fmtNum(r.stockDisp) + '</td><td class="muted">' + r.origen + '</td></tr>').join('') +
+      '</tbody>';
+    block.appendChild(table);
+    main.appendChild(block);
+    return;
+  }
+
+  const subs = TAB_SUBS[activeTab] || [activeTab];
+  const tabData = STATE.data[activeTab] || {};
+
+  if (subs.length <= 1) {
+    const familias = filtrarPorFamilia(tabData[subs[0]] || {});
+    if (!Object.keys(familias).length) return;
+    const anchos = calcularAnchosXTable([{ titulo: subs[0], familias }]);
+    renderExcelTable(main, familias, subs[0], anchos);
+    return;
+  }
+
+  if (activeSub === 'ALL') {
+    const secciones = subs
+      .map(sub => ({ sub, familias: filtrarPorFamilia(tabData[sub] || {}) }))
+      .filter(sec => Object.values(sec.familias).reduce((acc, arr) => acc + arr.length, 0) > 0);
+    if (!secciones.length) return;
+    const anchos = calcularAnchosXTable(secciones.map(sec => ({ titulo: sec.sub, familias: sec.familias })));
+    secciones.forEach(sec => renderExcelTable(main, sec.familias, sec.sub, anchos));
+  } else {
+    const familias = filtrarPorFamilia(tabData[activeSub] || {});
+    if (!Object.keys(familias).length) return;
+    const anchos = calcularAnchosXTable([{ titulo: activeSub, familias }]);
+    renderExcelTable(main, familias, activeSub, anchos);
+  }
+}
+
+// Wrapper publico: renderiza la vista en vivo (estilo v17) y, en paralelo, mantiene
+// actualizada la copia oculta estilo Excel que usa el boton de captura.
+function renderActive() {
+  renderActiveInner();
+  renderVistaCapturaExcel();
+}
+
 function renderTotalesFooter() {
   const el = document.getElementById('totalesFooter');
+  const elCap = document.getElementById('footerCaptura');
 
   if (activeTab === '__NEW__') {
     const list = STATE.newCodes || [];
     const suma = STATE.sumaSinClasificar || 0;
     el.style.display = 'flex';
+    if (elCap) elCap.style.display = 'flex';
     let evoHtml = '';
     if (HISTORIAL_ROWS && HISTORIAL_ROWS.length) {
       const prevRow = findPrevRow(HISTORIAL_ROWS);
@@ -790,16 +899,18 @@ function renderTotalesFooter() {
         const delta = suma - ayer;
         const cls = delta >= 0 ? 'mejor' : 'peor';
         const txt = delta >= 0 ? '▲ mejoró ' + fmtNum(Math.abs(delta)) : '▼ empeoró ' + fmtNum(Math.abs(delta));
-        evoHtml = '<div class="evo"><span class="delta ' + cls + '">' + txt + '</span><span class="lbl2">vs. último registro (' + (prevRow['FECHA']||'—') + '): ' + fmtNum(ayer) + '</span></div>';
+        evoHtml = '<div class="evo"><span class="delta ' + cls + '">' + txt + '</span></div>';
       }
     }
-    el.innerHTML =
+    const htmlNew =
       '<div class="tf-row">' +
         '<div class="tf-cell" style="flex:0 0 10%"></div>' +
         '<div class="tf-cell" style="flex:0 0 44%"><div class="item"><div class="num">' + list.length + '</div><div class="lbl">Códigos sin clasificar</div></div></div>' +
         '<div class="tf-cell tf-center" style="flex:0 0 14%"><div class="item"><div class="num neg">' + fmtNum(suma) + '</div><div class="lbl">Suma negativos sin clasificar</div></div></div>' +
         '<div class="tf-cell" style="flex:0 0 32%; display:flex; align-items:center;">' + evoHtml + '</div>' +
       '</div>';
+    el.innerHTML = htmlNew;
+    if (elCap) elCap.innerHTML = htmlNew;
     return;
   }
 
@@ -817,37 +928,38 @@ function renderTotalesFooter() {
   });
 
   el.style.display = 'flex';
+  if (elCap) elCap.style.display = 'flex';
   let evoHtml = '';
-  // La evolución por segmento se registra a nivel de pestaña principal (los 8 segmentos),
-  // por eso se muestra siempre en base al total de la pestaña, aunque estés filtrando un sub-cliente.
-  if (HISTORIAL_ROWS && HISTORIAL_ROWS.length && HISTORIAL_ROWS[0].hasOwnProperty(activeTab)) {
+  // La evolución se registra en HISTORIAL a nivel de pestaña principal (los 8 segmentos).
+  // Pero si en GRUPO L+MOSTAZA hay un filtro de familia activo (Solo Manteles / Solo
+  // Servilletas), hay que comparar contra el subtotal de ESE filtro, no contra el total
+  // combinado de todo el segmento — para eso HISTORIAL guarda columnas aparte
+  // ("GRUPO L+MOSTAZA - MANTELES" / "GRUPO L+MOSTAZA - SERVILLETAS").
+  const filtroActivo = (activeTab === TAB_CON_FILTRO_MANTELES && filtroFamilia);
+  const historialKey = filtroActivo ? (activeTab + ' - ' + filtroFamilia) : activeTab;
+  const hoyEvo = filtroActivo ? suma : (STATE.sumaPorTab[activeTab] || 0);
+  if (HISTORIAL_ROWS && HISTORIAL_ROWS.length && HISTORIAL_ROWS[0].hasOwnProperty(historialKey)) {
     const prevRow = findPrevRow(HISTORIAL_ROWS);
-    if (prevRow) {
-      const ayer = parseNum(prevRow[activeTab]);
-      const hoy = STATE.sumaPorTab[activeTab] || 0;
-      const delta = hoy - ayer;
+    const ayerRaw = prevRow ? prevRow[historialKey] : null;
+    const ayerStr = (ayerRaw === undefined || ayerRaw === null) ? '' : String(ayerRaw).trim();
+    if (ayerStr !== '') {
+      const ayer = parseNum(ayerRaw);
+      const delta = hoyEvo - ayer;
       const cls = delta >= 0 ? 'mejor' : 'peor';
       const txt = delta >= 0 ? '▲ mejoró ' + fmtNum(Math.abs(delta)) : '▼ empeoró ' + fmtNum(Math.abs(delta));
-      evoHtml = '<div class="evo"><span class="delta ' + cls + '">' + txt + '</span><span class="lbl2">' + activeTab + ' vs. último registro (' + (prevRow['FECHA']||'—') + '): ' + fmtNum(ayer) + '</span></div>';
+      evoHtml = '<div class="evo"><span class="delta ' + cls + '">' + txt + '</span></div>';
     }
   }
 
-  el.innerHTML =
+  const htmlMain =
     '<div class="tf-row">' +
       '<div class="tf-cell" style="flex:0 0 9%"></div>' +
       '<div class="tf-cell" style="flex:0 0 33%"><div class="item"><div class="num">' + count + '</div><div class="lbl">Códigos negativos en esta vista</div></div></div>' +
       '<div class="tf-cell tf-center" style="flex:0 0 12%"><div class="item"><div class="num neg">' + fmtNum(suma) + '</div><div class="lbl">Suma total de negativos</div></div></div>' +
       '<div class="tf-cell" style="flex:0 0 46%; display:flex; align-items:center;">' + evoHtml + '</div>' +
     '</div>';
-}
-
-function updateKPIs() {
-  document.getElementById('kpiTotal').textContent = STATE.totalNegativos || 0;
-  let segsConNeg = 0;
-  TAB_ORDER.forEach(t => { if (countTab(t) > 0) segsConNeg++; });
-  document.getElementById('kpiSegmentos').textContent = segsConNeg;
-  document.getElementById('kpiNuevos').textContent = (STATE.newCodes || []).length;
-  document.getElementById('kpiSinCobertura').textContent = STATE.sinCobertura || 0;
+  el.innerHTML = htmlMain;
+  if (elCap) elCap.innerHTML = htmlMain;
 }
 
 
@@ -860,6 +972,12 @@ function tituloVistaActual() {
   return t;
 }
 
+function anchoTablaCapturaPx() {
+  const tabla = document.querySelector('#mainCaptura table.xtable') || document.querySelector('#mainCaptura table.tbl-new');
+  if (tabla) return Math.ceil(tabla.getBoundingClientRect().width);
+  return 1150; // vista vacia (sin negativos) u otro caso sin tabla: ancho razonable por defecto
+}
+
 async function captureCurrentView() {
   const btn = document.getElementById('captureBtn');
   const original = btn.textContent;
@@ -869,23 +987,25 @@ async function captureCurrentView() {
   try {
     wrapper = document.createElement('div');
     wrapper.className = 'capture-render';
+    // El ancho del "lienzo" se ajusta al ancho real de la tabla estilo Excel (oculta en
+    // #mainCaptura), asi la fecha de actualizacion, la tabla y el pie de totales quedan
+    // todos con el mismo ancho exacto (ya no se incluye el titulo naranja de la solapa).
+    const anchoLienzo = anchoTablaCapturaPx() + 14 * 2; // + padding del wrapper (14px por lado)
+    wrapper.style.width = anchoLienzo + 'px';
     wrapper.style.position = 'fixed';
     wrapper.style.left = '-9999px';
     wrapper.style.top = '0';
     wrapper.style.zIndex = '-1';
-
-    const titleDiv = document.createElement('div');
-    titleDiv.className = 'capture-title';
-    titleDiv.textContent = tituloVistaActual();
-    wrapper.appendChild(titleDiv);
 
     const updatedDiv = document.createElement('div');
     updatedDiv.className = 'capture-updated';
     updatedDiv.textContent = document.getElementById('status').textContent;
     wrapper.appendChild(updatedDiv);
 
-    wrapper.appendChild(document.getElementById('main').cloneNode(true));
-    wrapper.appendChild(document.getElementById('totalesFooter').cloneNode(true));
+    // Clona la copia OCULTA estilo Excel (#mainCaptura/#footerCaptura), no la vista en
+    // vivo (#main/#totalesFooter), que ahora mantiene el look moderno tipo v17.
+    wrapper.appendChild(document.getElementById('mainCaptura').cloneNode(true));
+    wrapper.appendChild(document.getElementById('footerCaptura').cloneNode(true));
 
     document.body.appendChild(wrapper);
     const canvas = await html2canvas(wrapper, { backgroundColor: '#ffffff', scale: 2 });
