@@ -651,13 +651,21 @@ function ordenFamilias(nombres) {
   return prioridad.concat(resto);
 }
 
+// Formato de VISUALIZACIÓN de la familia (no altera CLASSIFICATION ni el orden/filtro,
+// que siguen usando el nombre original): todo en MAYÚSCULA, y a las servilletas se les
+// quita la "s" que sigue al número (ej. "Servilletas 33s" -> "SERVILLETAS 33").
+function formatFamiliaDisplay(nombre) {
+  if (!nombre) return nombre;
+  return nombre.toUpperCase().replace(/(\d)S\b/g, '$1');
+}
+
 function renderFamiliaBlocks(container, familias) {
   const famNames = ordenFamilias(Object.keys(familias));
   famNames.forEach(fam => {
     const rows = familias[fam];
     const block = document.createElement('div');
     block.className = 'familia-block';
-    block.innerHTML = '<div class="familia-title">' + fam + '</div>';
+    block.innerHTML = '<div class="familia-title">' + formatFamiliaDisplay(fam) + '</div>';
     const table = document.createElement('table');
     table.className = 'tbl-main';
     table.innerHTML = COLGROUP_MAIN + '<thead><tr><th>Código</th><th>Descripción</th><th>Pendientes</th><th>Stock negativo</th><th>Nro OC</th><th>OC DIF</th></tr></thead><tbody>' +
@@ -746,7 +754,7 @@ function xrowHTML(item) {
     : '<td class="xfalta">FALTA</td>';
   const trClass = item.nuevoGrupo ? ' class="xgrupo-nuevo"' : '';
   return '<tr' + trClass + '>' +
-    '<td class="xfam">' + (item.fam ? item.fam.toUpperCase() : '') + '</td>' +
+    '<td class="xfam">' + (item.fam ? formatFamiliaDisplay(item.fam) : '') + '</td>' +
     '<td>' + r.cod + '</td>' +
     '<td>' + r.desc + '</td>' +
     '<td class="xnum">' + fmtNum(r.pendiente) + '</td>' +
@@ -794,7 +802,7 @@ function calcularAnchosXTable(secciones) {
     wDesc = Math.max(wDesc, medirTextoPx(sec.titulo, XFONT_TITLE));
     filasConFamilia(sec.familias).forEach(item => {
       const r = item.r;
-      if (item.fam) wFam = Math.max(wFam, medirTextoPx(item.fam.toUpperCase(), XFONT_BODY_B));
+      if (item.fam) wFam = Math.max(wFam, medirTextoPx(formatFamiliaDisplay(item.fam), XFONT_BODY_B));
       wCod = Math.max(wCod, medirTextoPx(r.cod, XFONT_BODY_B));
       wDesc = Math.max(wDesc, medirTextoPx(r.desc, XFONT_BODY));
       wPend = Math.max(wPend, medirTextoPx(fmtNum(r.pendiente), XFONT_BODY));
