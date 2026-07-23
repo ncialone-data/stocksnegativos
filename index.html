@@ -462,13 +462,21 @@ async function loadAll() {
         const origenOC = ocInfo ? Array.from(ocInfo.origenes).join(', ') : null;
         newCodes.push({ ...rowData, origen: origenOC || 'Sin OC asociada (detectado en STOCK CENTRAL)' });
       } else {
+        // Un mismo código puede figurar en varios sub-clientes de la misma solapa
+        // (ej. PS1103 en GRUPO L y en LABELFLEX): se sigue mostrando en cada uno
+        // para que ambos equipos lo vean, pero representa UN solo faltante real,
+        // así que solo debe sumar una vez al total de la solapa.
+        const tabsYaContados = new Set();
         for (const [tab, sub, familia] of clases) {
           if (!data[tab]) data[tab] = {};
           if (!data[tab][sub]) data[tab][sub] = {};
           const fam = familia || 'SIN FAMILIA';
           if (!data[tab][sub][fam]) data[tab][sub][fam] = [];
           data[tab][sub][fam].push(rowData);
-          sumaPorTab[tab] = (sumaPorTab[tab] || 0) + stockDisp;
+          if (!tabsYaContados.has(tab)) {
+            sumaPorTab[tab] = (sumaPorTab[tab] || 0) + stockDisp;
+            tabsYaContados.add(tab);
+          }
         }
       }
     }
@@ -546,11 +554,11 @@ function filtrarPorFamilia(familias) {
 
 function countTab(tab) {
   const subs = STATE.data[tab] || {};
-  let total = 0;
+  const cods = new Set();
   for (const sub of Object.keys(subs)) {
-    for (const arr of Object.values(subs[sub])) total += arr.length;
+    for (const arr of Object.values(subs[sub])) arr.forEach(r => cods.add(r.cod));
   }
-  return total;
+  return cods.size;
 }
 function countSub(tab, sub) {
   const fams = (STATE.data[tab] || {})[sub] || {};
@@ -592,7 +600,14 @@ function renderSecondaryTabs() {
   el.style.display = 'flex';
   el.innerHTML = '';
 
-  const allCount = subs.reduce((acc, s) => acc + countSub(activeTab, s), 0);
+  const allCount = (() => {
+    const cods = new Set();
+    subs.forEach(s => {
+      const fams = (STATE.data[activeTab] || {})[s] || {};
+      Object.values(fams).forEach(arr => arr.forEach(r => cods.add(r.cod)));
+    });
+    return cods.size;
+  })();
   const allBtn = document.createElement('button');
   allBtn.className = 'tab-secondary all-btn' + (activeSub === 'ALL' ? ' active' : '');
   allBtn.innerHTML = 'TODOS <span class="count">' + allCount + '</span>';
@@ -940,11 +955,19 @@ function renderTotalesFooter() {
   let subsToSum = subs;
   if (subs.length > 1 && activeSub !== 'ALL') subsToSum = [activeSub];
 
+  // Igual que en countTab/allCount: si el mismo código aparece en más de un
+  // sub-cliente dentro de subsToSum (ej. PS1103 en GRUPO L y LABELFLEX), cuenta
+  // una sola vez tanto en la cantidad de códigos como en la suma de negativos.
   let count = 0, suma = 0;
+  const codsVistos = new Set();
   subsToSum.forEach(sub => {
     const familias = filtrarPorFamilia(tabData[sub] || {});
     Object.values(familias).forEach(arr => {
-      arr.forEach(r => { count++; suma += r.stockDisp; });
+      arr.forEach(r => {
+        if (codsVistos.has(r.cod)) return;
+        codsVistos.add(r.cod);
+        count++; suma += r.stockDisp;
+      });
     });
   });
 
