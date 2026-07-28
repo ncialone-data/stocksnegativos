@@ -200,17 +200,19 @@
   .totales-footer .evo .delta.peor { color: var(--red); background:#fdeaea; }
   .totales-footer .evo .lbl2 { font-size:11px; color:var(--muted); }
 
-  .tbl-main col.c-cod { width: 9%; }
-  .tbl-main col.c-desc { width: 33%; }
-  .tbl-main col.c-pend { width: 11%; }
-  .tbl-main col.c-stock { width: 12%; }
-  .tbl-main col.c-oc { width: 18%; }
+  .tbl-main col.c-cod { width: 8%; }
+  .tbl-main col.c-desc { width: 26%; }
+  .tbl-main col.c-fisico { width: 11%; }
+  .tbl-main col.c-pend { width: 10%; }
+  .tbl-main col.c-stock { width: 11%; }
+  .tbl-main col.c-oc { width: 17%; }
   .tbl-main col.c-ocdif { width: 17%; }
-  .tbl-new col.c-cod { width: 10%; }
-  .tbl-new col.c-desc { width: 34%; }
-  .tbl-new col.c-pend { width: 12%; }
-  .tbl-new col.c-stock { width: 14%; }
-  .tbl-new col.c-origen { width: 30%; }
+  .tbl-new col.c-cod { width: 9%; }
+  .tbl-new col.c-desc { width: 26%; }
+  .tbl-new col.c-fisico { width: 11%; }
+  .tbl-new col.c-pend { width: 10%; }
+  .tbl-new col.c-stock { width: 13%; }
+  .tbl-new col.c-origen { width: 31%; }
 
   #captureBtn {
     background: rgba(255,255,255,0.15);
@@ -448,13 +450,14 @@ async function loadAll() {
       sumaNegativos += stockDisp;
       const desc = r['MATERIA PRIMA'] || '';
       const pendiente = parseNum(r['PEDIDO']);
+      const stockFisico = parseNum(r['STOCK SISTEMA']);
       const ocInfo = ocMap[cod];
       const saldoEnviar = ocInfo ? ocInfo.saldoEnviar : 0;
       const ords = ocInfo ? Array.from(ocInfo.ords).join(', ') : '';
       const ocDif = stockDisp + saldoEnviar;
       if (ocDif < 0) sinCobertura++;
 
-      const rowData = { cod, desc, pendiente, stockDisp, ords, saldoEnviar, ocDif };
+      const rowData = { cod, desc, stockFisico, pendiente, stockDisp, ords, saldoEnviar, ocDif };
 
       const clases = CLASSIFICATION[cod];
       if (!clases || clases.length === 0) {
@@ -644,14 +647,15 @@ function renderSecondaryTabs() {
   }
 }
 
-const COLGROUP_MAIN = '<colgroup><col class="c-cod"><col class="c-desc"><col class="c-pend"><col class="c-stock"><col class="c-oc"><col class="c-ocdif"></colgroup>';
-const COLGROUP_NEW = '<colgroup><col class="c-cod"><col class="c-desc"><col class="c-pend"><col class="c-stock"><col class="c-origen"></colgroup>';
+const COLGROUP_MAIN = '<colgroup><col class="c-cod"><col class="c-desc"><col class="c-fisico"><col class="c-pend"><col class="c-stock"><col class="c-oc"><col class="c-ocdif"></colgroup>';
+const COLGROUP_NEW = '<colgroup><col class="c-cod"><col class="c-desc"><col class="c-fisico"><col class="c-pend"><col class="c-stock"><col class="c-origen"></colgroup>';
 
 function rowHTML(r) {
   const ocDifClass = r.ocDif >= 0 ? 'ocdif-cubierto' : 'ocdif-falta';
   return '<tr>' +
     '<td>' + r.cod + '</td>' +
     '<td>' + r.desc + '</td>' +
+    '<td>' + (r.stockFisico ? fmtNum(r.stockFisico) : '—') + '</td>' +
     '<td>' + (r.pendiente ? fmtNum(r.pendiente) : '—') + '</td>' +
     '<td class="neg">' + fmtNum(r.stockDisp) + '</td>' +
     '<td class="muted">' + (r.ords || '—') + '</td>' +
@@ -683,7 +687,7 @@ function renderFamiliaBlocks(container, familias) {
     block.innerHTML = '<div class="familia-title">' + formatFamiliaDisplay(fam) + '</div>';
     const table = document.createElement('table');
     table.className = 'tbl-main';
-    table.innerHTML = COLGROUP_MAIN + '<thead><tr><th>Código</th><th>Descripción</th><th>Pendientes</th><th>Stock negativo</th><th>Nro OC</th><th>OC DIF</th></tr></thead><tbody>' +
+    table.innerHTML = COLGROUP_MAIN + '<thead><tr><th>Código</th><th>Descripción</th><th>Stock físico</th><th>Pendientes</th><th>Stock negativo</th><th>Nro OC</th><th>OC DIF</th></tr></thead><tbody>' +
       rows.map(rowHTML).join('') + '</tbody>';
     block.appendChild(table);
     container.appendChild(block);
@@ -705,8 +709,8 @@ function renderActiveInner() {
     block.innerHTML = '<div class="familia-title">Códigos con stock negativo que no están clasificados en ningún grupo</div>';
     const table = document.createElement('table');
     table.className = 'tbl-new';
-    table.innerHTML = COLGROUP_NEW + '<thead><tr><th>Código</th><th>Descripción</th><th>Pendientes</th><th>Stock negativo</th><th>Encontrado en</th></tr></thead><tbody>' +
-      list.map(r => '<tr><td>' + r.cod + '</td><td>' + r.desc + '</td><td>' + (r.pendiente ? fmtNum(r.pendiente) : '—') + '</td><td class="neg">' + fmtNum(r.stockDisp) + '</td><td class="muted">' + r.origen + '</td></tr>').join('') +
+    table.innerHTML = COLGROUP_NEW + '<thead><tr><th>Código</th><th>Descripción</th><th>Stock físico</th><th>Pendientes</th><th>Stock negativo</th><th>Encontrado en</th></tr></thead><tbody>' +
+      list.map(r => '<tr><td>' + r.cod + '</td><td>' + r.desc + '</td><td>' + (r.stockFisico ? fmtNum(r.stockFisico) : '—') + '</td><td>' + (r.pendiente ? fmtNum(r.pendiente) : '—') + '</td><td class="neg">' + fmtNum(r.stockDisp) + '</td><td class="muted">' + r.origen + '</td></tr>').join('') +
       '</tbody>';
     block.appendChild(table);
     main.appendChild(block);
@@ -772,6 +776,7 @@ function xrowHTML(item) {
     '<td class="xfam">' + (item.fam ? formatFamiliaDisplay(item.fam) : '') + '</td>' +
     '<td>' + r.cod + '</td>' +
     '<td>' + r.desc + '</td>' +
+    '<td class="xnum">' + fmtNum(r.stockFisico) + '</td>' +
     '<td class="xnum">' + fmtNum(r.pendiente) + '</td>' +
     '<td class="xnum neg">' + fmtNum(r.stockDisp) + '</td>' +
     ocCell +
@@ -808,6 +813,7 @@ function calcularAnchosXTable(secciones) {
   let wFam = medirTextoPx('FAMILIA', XFONT_HEADER);
   let wCod = medirTextoPx('CODIGO', XFONT_HEADER);
   let wDesc = 0;
+  let wFisico = Math.max(medirTextoPx('STOCK', XFONT_HEADER), medirTextoPx('FÍSICO', XFONT_HEADER));
   let wPend = medirTextoPx('PENDIENTES', XFONT_HEADER);
   let wStock = Math.max(medirTextoPx('STOCK', XFONT_HEADER), medirTextoPx('NEGATIVO', XFONT_HEADER));
   let wOc = medirTextoPx('NRO OC', XFONT_HEADER);
@@ -820,6 +826,7 @@ function calcularAnchosXTable(secciones) {
       if (item.fam) wFam = Math.max(wFam, medirTextoPx(formatFamiliaDisplay(item.fam), XFONT_BODY_B));
       wCod = Math.max(wCod, medirTextoPx(r.cod, XFONT_BODY_B));
       wDesc = Math.max(wDesc, medirTextoPx(r.desc, XFONT_BODY));
+      wFisico = Math.max(wFisico, medirTextoPx(fmtNum(r.stockFisico), XFONT_BODY));
       wPend = Math.max(wPend, medirTextoPx(fmtNum(r.pendiente), XFONT_BODY));
       wStock = Math.max(wStock, medirTextoPx(fmtNum(r.stockDisp), XFONT_BODY));
       const tieneOC = !!(r.ords && r.ords.trim());
@@ -832,6 +839,7 @@ function calcularAnchosXTable(secciones) {
     fam: Math.ceil(wFam + XCELL_PAD),
     cod: Math.ceil(wCod + XCELL_PAD),
     desc: Math.ceil(wDesc + XCELL_PAD),
+    fisico: Math.ceil(wFisico + XCELL_PAD),
     pend: Math.ceil(wPend + XCELL_PAD),
     stock: Math.ceil(wStock + XCELL_PAD),
     oc: Math.ceil(wOc + XCELL_PAD),
@@ -844,6 +852,7 @@ function colgroupXTable(a) {
     '<col style="width:' + a.fam + 'px">' +
     '<col style="width:' + a.cod + 'px">' +
     '<col style="width:' + a.desc + 'px">' +
+    '<col style="width:' + a.fisico + 'px">' +
     '<col style="width:' + a.pend + 'px">' +
     '<col style="width:' + a.stock + 'px">' +
     '<col style="width:' + a.oc + 'px">' +
@@ -857,7 +866,7 @@ function renderExcelTable(container, familias, titulo, anchos) {
   const table = document.createElement('table');
   table.className = 'xtable';
   table.innerHTML = colgroupXTable(anchos) +
-    '<thead><tr><th>Familia</th><th>Codigo</th><th class="xtitulo">' + titulo + '</th><th class="xnum">Pendientes</th><th class="xnum">Stock<br>negativo</th><th class="xc">Nro OC</th><th class="xc">OC DIF</th></tr></thead>' +
+    '<thead><tr><th>Familia</th><th>Codigo</th><th class="xtitulo">' + titulo + '</th><th class="xnum">Stock<br>físico</th><th class="xnum">Pendientes</th><th class="xnum">Stock<br>negativo</th><th class="xc">Nro OC</th><th class="xc">OC DIF</th></tr></thead>' +
     '<tbody>' + filas.map(xrowHTML).join('') + '</tbody>';
   container.appendChild(table);
 }
@@ -877,8 +886,8 @@ function renderVistaCapturaExcel() {
     block.innerHTML = '<div class="familia-title">Códigos con stock negativo que no están clasificados en ningún grupo</div>';
     const table = document.createElement('table');
     table.className = 'tbl-new';
-    table.innerHTML = COLGROUP_NEW + '<thead><tr><th>Código</th><th>Descripción</th><th>Pendientes</th><th>Stock negativo</th><th>Encontrado en</th></tr></thead><tbody>' +
-      list.map(r => '<tr><td>' + r.cod + '</td><td>' + r.desc + '</td><td>' + (r.pendiente ? fmtNum(r.pendiente) : '—') + '</td><td class="neg">' + fmtNum(r.stockDisp) + '</td><td class="muted">' + r.origen + '</td></tr>').join('') +
+    table.innerHTML = COLGROUP_NEW + '<thead><tr><th>Código</th><th>Descripción</th><th>Stock físico</th><th>Pendientes</th><th>Stock negativo</th><th>Encontrado en</th></tr></thead><tbody>' +
+      list.map(r => '<tr><td>' + r.cod + '</td><td>' + r.desc + '</td><td>' + (r.stockFisico ? fmtNum(r.stockFisico) : '—') + '</td><td>' + (r.pendiente ? fmtNum(r.pendiente) : '—') + '</td><td class="neg">' + fmtNum(r.stockDisp) + '</td><td class="muted">' + r.origen + '</td></tr>').join('') +
       '</tbody>';
     block.appendChild(table);
     main.appendChild(block);
